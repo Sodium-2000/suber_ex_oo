@@ -13,6 +13,8 @@ class SmallBoard extends StatefulWidget {
   final bool isActive;
   final bool isUltimateGameOver;
   final int resetSignal;
+  final bool isOnlineMode;
+  final bool isMyTurn;
 
   const SmallBoard({
     super.key,
@@ -23,17 +25,20 @@ class SmallBoard extends StatefulWidget {
     this.onBoardWon,
     required this.isUltimateGameOver,
     required this.resetSignal,
+    this.isOnlineMode = false,
+    this.isMyTurn = true,
   });
 
   @override
-  State<SmallBoard> createState() => _SmallBoard();
+  SmallBoardState createState() => SmallBoardState();
 }
 
-class _SmallBoard extends State<SmallBoard> {
+class SmallBoardState extends State<SmallBoard> {
   List<String> board3x3 = ['', '', '', '', '', '', '', '', ''];
   bool isGameOver = false;
   String winner = ''; // '', 'x', 'o'
   String turn = 'x'; // 'x', 'o'
+  int? lastMoveCellIndex; // Track last move for highlighting
 
   bool checkGameOver() {
     if (isGameOver) {
@@ -128,16 +133,78 @@ class _SmallBoard extends State<SmallBoard> {
   void play(int index) {
     if (widget.isUltimateGameOver) return; // 🚫 block all moves
     if (!widget.isActive) return; // not the active small board
-    if (!isGameOver && board3x3[index] == '') {
-      board3x3[index] = widget.currentTurn;
-      checkGameOver();
-      widget.onMovePlayed(
-        widget.currentTurn,
-        widget.index,
-        index,
-      ); // notify parent whose turn just played and which cell
-      setState(() {});
+    if (isGameOver) return; // board is finished
+    if (board3x3[index] != '') return; // cell already occupied
+
+    // In online mode, just send move to server - don't play locally
+    // Server will broadcast back and we'll update via playCell
+    if (widget.isOnlineMode) {
+      widget.onMovePlayed(widget.currentTurn, widget.index, index);
+      return;
     }
+
+    // Local mode: Make the move immediately
+    setState(() {
+      board3x3[index] = widget.currentTurn;
+      lastMoveCellIndex = index; // Track last move
+    });
+
+    checkGameOver();
+    widget.onMovePlayed(
+      widget.currentTurn,
+      widget.index,
+      index,
+    ); // notify parent whose turn just played and which cell
+  }
+
+  // Public method for parent to update cell (used in online mode)
+  void playCell(int cellIndex, String symbol) {
+    setState(() {
+      board3x3[cellIndex] = symbol;
+      lastMoveCellIndex = cellIndex; // Track last move
+    });
+    checkGameOver();
+  }
+
+  // Public method to update highlight (used for undo)
+  void setLastMove(int? cellIndex) {
+    setState(() {
+      lastMoveCellIndex = cellIndex;
+    });
+  }
+
+  // Public method to clear highlight
+  void clearHighlight() {
+    setState(() {
+      lastMoveCellIndex = null;
+    });
+  }
+
+  // Public method to force game over state (used for reconnection)
+  void forceGameOver(String winnerSymbol) {
+    setState(() {
+      winner = winnerSymbol;
+      isGameOver = true;
+    });
+  }
+
+  // Public method to restore full board state (used for reconnection)
+  void restoreState(
+    List<String> cells,
+    String boardWinner,
+    bool boardIsGameOver,
+  ) {
+    print('🔄 SmallBoard ${widget.index}: restoreState called');
+    print('   Cells: $cells');
+    print('   Winner: $boardWinner');
+    print('   IsGameOver: $boardIsGameOver');
+    setState(() {
+      board3x3 = List<String>.from(cells);
+      winner = boardWinner;
+      isGameOver = boardIsGameOver;
+      lastMoveCellIndex = null; // Clear highlight on restore
+    });
+    print('✅ SmallBoard ${widget.index}: State restored');
   }
 
   // compute winner without mutating or notifying parent
@@ -167,6 +234,12 @@ class _SmallBoard extends State<SmallBoard> {
     if (cellIndex < 0 || cellIndex > 8) return winner;
     if (board3x3[cellIndex] == '') return winner;
     board3x3[cellIndex] = '';
+
+    // Clear highlight if undoing the last move
+    if (lastMoveCellIndex == cellIndex) {
+      lastMoveCellIndex = null;
+    }
+
     // recompute winner/draw
     String newWinner = computeWinner();
     if (newWinner == '') {
@@ -253,9 +326,17 @@ class _SmallBoard extends State<SmallBoard> {
     double screenWidth = (MediaQuery.of(context).size.width) / 3;
     double screenHeight = (MediaQuery.of(context).size.height) / 3;
     double minScreenSize = min(screenHeight, screenWidth);
-    // When the ultimate game is over, visually undim all boards.
-    final bool isDimmed =
-        !widget.isUltimateGameOver && (!widget.isActive || isGameOver);
+    // Dimming logic:
+    // - In local mode: dim if not active (wrong board to play on)
+    // - In online mode: ONLY dim inactive boards when it IS your turn
+    // - When ultimate game is over: undim everything (show final board state)
+    // - When small board is won: still dim it
+    final bool isDimmed = widget.isUltimateGameOver
+        ? false
+        : (isGameOver ||
+              (widget.isOnlineMode
+                  ? (widget.isMyTurn && !widget.isActive)
+                  : !widget.isActive));
 
     return Container(
       height: minScreenSize,
@@ -282,19 +363,28 @@ class _SmallBoard extends State<SmallBoard> {
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
                   GestureDetector(
-                    child: Button(letter: board3x3[0]),
+                    child: Button(
+                      letter: board3x3[0],
+                      isHighlighted: lastMoveCellIndex == 0,
+                    ),
                     onTap: () {
                       play(0);
                     },
                   ),
                   GestureDetector(
-                    child: Button(letter: board3x3[1]),
+                    child: Button(
+                      letter: board3x3[1],
+                      isHighlighted: lastMoveCellIndex == 1,
+                    ),
                     onTap: () {
                       play(1);
                     },
                   ),
                   GestureDetector(
-                    child: Button(letter: board3x3[2]),
+                    child: Button(
+                      letter: board3x3[2],
+                      isHighlighted: lastMoveCellIndex == 2,
+                    ),
                     onTap: () {
                       play(2);
                     },
@@ -306,19 +396,28 @@ class _SmallBoard extends State<SmallBoard> {
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
                   GestureDetector(
-                    child: Button(letter: board3x3[3]),
+                    child: Button(
+                      letter: board3x3[3],
+                      isHighlighted: lastMoveCellIndex == 3,
+                    ),
                     onTap: () {
                       play(3);
                     },
                   ),
                   GestureDetector(
-                    child: Button(letter: board3x3[4]),
+                    child: Button(
+                      letter: board3x3[4],
+                      isHighlighted: lastMoveCellIndex == 4,
+                    ),
                     onTap: () {
                       play(4);
                     },
                   ),
                   GestureDetector(
-                    child: Button(letter: board3x3[5]),
+                    child: Button(
+                      letter: board3x3[5],
+                      isHighlighted: lastMoveCellIndex == 5,
+                    ),
                     onTap: () {
                       play(5);
                     },
@@ -330,19 +429,28 @@ class _SmallBoard extends State<SmallBoard> {
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
                   GestureDetector(
-                    child: Button(letter: board3x3[6]),
+                    child: Button(
+                      letter: board3x3[6],
+                      isHighlighted: lastMoveCellIndex == 6,
+                    ),
                     onTap: () {
                       play(6);
                     },
                   ),
                   GestureDetector(
-                    child: Button(letter: board3x3[7]),
+                    child: Button(
+                      letter: board3x3[7],
+                      isHighlighted: lastMoveCellIndex == 7,
+                    ),
                     onTap: () {
                       play(7);
                     },
                   ),
                   GestureDetector(
-                    child: Button(letter: board3x3[8]),
+                    child: Button(
+                      letter: board3x3[8],
+                      isHighlighted: lastMoveCellIndex == 8,
+                    ),
                     onTap: () {
                       play(8);
                     },
@@ -383,6 +491,7 @@ class _SmallBoard extends State<SmallBoard> {
         board3x3 = List.filled(9, '');
         winner = '';
         isGameOver = false;
+        lastMoveCellIndex = null; // Clear highlight on reset
       });
     }
   }

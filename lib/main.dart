@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:super_xo/screens/ultimate_board.dart';
+import 'package:super_xo/screens/start_menu_screen.dart';
 import 'package:super_xo/theme/theme_controller.dart';
 import 'package:super_xo/theme/app_theme.dart';
 import 'package:super_xo/controllers/language_controller.dart';
@@ -36,7 +36,7 @@ class MainApp extends StatelessWidget {
                           primaryColor: primary,
                           borderColor: border,
                         ),
-                  home: const UltimateBoard(),
+                  home: const StartMenuScreen(),
                 );
               },
             );

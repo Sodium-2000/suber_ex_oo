@@ -5,7 +5,8 @@ import 'package:flutter/material.dart';
 
 class Button extends StatefulWidget {
   final String letter;
-  const Button({super.key, required this.letter});
+  final bool isHighlighted;
+  const Button({super.key, required this.letter, this.isHighlighted = false});
 
   @override
   State<Button> createState() => _ButtonState();
@@ -32,13 +33,44 @@ class _ButtonState extends State<Button> {
     }
     return Container(
       margin: EdgeInsets.all(boxWidth / 10),
-      // color: Colors.pink,
-      color: Theme.of(context).primaryColor,
       width: boxWidth,
       height: boxWidth,
-      child: Center(
-        // child: Text(widget.letter, style: TextStyle(fontSize: boxWidth)),
-        child: boxIcon,
+      child: Stack(
+        children: [
+          // Main button background
+          Container(
+            color: Theme.of(context).primaryColor,
+            // child: Center(child: boxIcon),
+          ),
+          // Highlight overlay (doesn't affect layout)
+          if (widget.isHighlighted)
+            Positioned.fill(
+              child: IgnorePointer(
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: Colors.transparent, // Explicitly transparent
+                    border: Border.all(color: Colors.yellow, width: 2),
+                    boxShadow: [
+                      BoxShadow(
+                        color: const Color.fromARGB(92, 255, 235, 59),
+                        blurRadius: 20,
+                        spreadRadius: 5,
+                      ),
+                      BoxShadow(
+                        color: Colors.amber,
+                        blurRadius: 15,
+                        spreadRadius: 2,
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          Container(
+            // color: Theme.of(context).primaryColor,
+            child: Center(child: boxIcon),
+          ),
+        ],
       ),
     );
   }
