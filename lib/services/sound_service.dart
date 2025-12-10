@@ -8,7 +8,6 @@ class SoundService {
   factory SoundService() => _instance;
   SoundService._internal();
 
-  final AudioPlayer _audioPlayer = AudioPlayer();
   bool _isMuted = false;
 
   // Sound file paths - easily changeable
@@ -35,7 +34,14 @@ class SoundService {
     if (path == null) return;
 
     try {
-      await _audioPlayer.play(AssetSource(path));
+      // Create a new player for each sound to allow concurrent playback
+      final player = AudioPlayer();
+      await player.play(AssetSource(path));
+      
+      // Auto-dispose when sound completes
+      player.onPlayerComplete.listen((_) {
+        player.dispose();
+      });
     } catch (e) {
       print('Error playing sound: $e');
     }
@@ -57,9 +63,4 @@ class SoundService {
 
   // Get current mute state
   bool get isMuted => _isMuted;
-
-  // Dispose resources
-  void dispose() {
-    _audioPlayer.dispose();
-  }
 }
