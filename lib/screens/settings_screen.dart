@@ -177,7 +177,7 @@ class SettingsScreen extends StatelessWidget {
               children: [
                 ListTile(
                   title: Text(tr('version')),
-                  subtitle: const Text('0.1.0+2'),
+                  subtitle: const Text('1.0.1'),
                   leading: const Icon(Icons.info_outline),
                 ),
               ],
@@ -247,22 +247,30 @@ class _SoundSectionState extends State<_SoundSection> {
 
   @override
   Widget build(BuildContext context) {
-    return _SettingsSection(
-      title: 'Sound',
-      children: [
-        SwitchListTile(
-          title: const Text('Mute Sounds'),
-          subtitle: const Text('Turn off all game sound effects'),
-          value: _isMuted,
+    return Card(
+      elevation: 2,
+      child: ListTile(
+        leading: Icon(
+          _isMuted ? Icons.volume_off : Icons.volume_up,
+          color: Theme.of(context).primaryColor,
+        ),
+        title: Text(
+          tr('sound_setting'),
+          style: Theme.of(
+            context,
+          ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+        ),
+        trailing: Switch(
+          value: !_isMuted,
           onChanged: (value) async {
-            await _soundService.setMuted(value);
+            await _soundService.setMuted(!value);
             setState(() {
-              _isMuted = value;
+              _isMuted = !value;
             });
           },
           activeColor: Theme.of(context).primaryColor,
         ),
-      ],
+      ),
     );
   }
 }
@@ -285,24 +293,28 @@ class _GameplaySectionState extends State<_GameplaySection> {
 
   @override
   Widget build(BuildContext context) {
-    return _SettingsSection(
-      title: 'Gameplay',
-      children: [
-        ValueListenableBuilder<bool>(
-          valueListenable: _gameSettings.dimmingEnabled,
-          builder: (context, isDimmingEnabled, _) {
-            return SwitchListTile(
-              title: const Text('Board Dimming'),
-              subtitle: const Text('Dim inactive or completed boards'),
+    return Card(
+      elevation: 2,
+      child: ValueListenableBuilder<bool>(
+        valueListenable: _gameSettings.dimmingEnabled,
+        builder: (context, isDimmingEnabled, _) {
+          return ListTile(
+            title: Text(
+              tr('board_dimming_setting'),
+              style: Theme.of(
+                context,
+              ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+            ),
+            trailing: Switch(
               value: isDimmingEnabled,
               onChanged: (value) async {
                 await _gameSettings.setDimmingEnabled(value);
               },
               activeColor: Theme.of(context).primaryColor,
-            );
-          },
-        ),
-      ],
+            ),
+          );
+        },
+      ),
     );
   }
 }

@@ -68,6 +68,8 @@ const Map<String, Map<String, String>> _translations = {
     'room_timeout': 'Room Timeout',
     'about_section': 'About',
     'version': 'Version',
+    'sound_setting': 'Sound',
+    'board_dimming_setting': 'Board Dimming',
   },
   'ar': {
     'restart_title': 'إعادة بدء اللعبة؟',
@@ -133,6 +135,8 @@ const Map<String, Map<String, String>> _translations = {
     'room_timeout': 'مهلة الغرفة انتهت',
     'about_section': 'حول',
     'version': 'الإصدار',
+    'sound_setting': 'الصوت',
+    'board_dimming_setting': 'تعتيم اللوح',
   },
 };
 
