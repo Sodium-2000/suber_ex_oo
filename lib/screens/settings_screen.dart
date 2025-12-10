@@ -3,6 +3,7 @@ import 'package:super_xo/theme/theme_controller.dart';
 import 'package:super_xo/controllers/language_controller.dart';
 import 'package:super_xo/localization/app_localizations.dart';
 import 'package:super_xo/services/sound_service.dart';
+import 'package:super_xo/services/game_settings_service.dart';
 
 /// Unified settings screen for theme, language, and color customization
 class SettingsScreen extends StatelessWidget {
@@ -160,6 +161,11 @@ class SettingsScreen extends StatelessWidget {
 
             const SizedBox(height: 24),
 
+            // Gameplay section
+            _GameplaySection(),
+
+            const SizedBox(height: 24),
+
             // Color theme section
             _buildColorSection(context),
           ],
@@ -241,6 +247,46 @@ class _SoundSectionState extends State<_SoundSection> {
             });
           },
           activeColor: Theme.of(context).primaryColor,
+        ),
+      ],
+    );
+  }
+}
+
+class _GameplaySection extends StatefulWidget {
+  const _GameplaySection();
+
+  @override
+  State<_GameplaySection> createState() => _GameplaySectionState();
+}
+
+class _GameplaySectionState extends State<_GameplaySection> {
+  final _gameSettings = GameSettingsService();
+
+  @override
+  void initState() {
+    super.initState();
+    _gameSettings.initialize();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return _SettingsSection(
+      title: 'Gameplay',
+      children: [
+        ValueListenableBuilder<bool>(
+          valueListenable: _gameSettings.dimmingEnabled,
+          builder: (context, isDimmingEnabled, _) {
+            return SwitchListTile(
+              title: const Text('Board Dimming'),
+              subtitle: const Text('Dim inactive or completed boards'),
+              value: isDimmingEnabled,
+              onChanged: (value) async {
+                await _gameSettings.setDimmingEnabled(value);
+              },
+              activeColor: Theme.of(context).primaryColor,
+            );
+          },
         ),
       ],
     );

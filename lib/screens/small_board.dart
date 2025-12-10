@@ -3,6 +3,7 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:super_xo/theme/app_theme.dart';
 import 'package:super_xo/widgets/button.dart';
+import 'package:super_xo/services/game_settings_service.dart';
 
 class SmallBoard extends StatefulWidget {
   final String currentTurn;
@@ -39,6 +40,36 @@ class SmallBoardState extends State<SmallBoard> {
   String winner = ''; // '', 'x', 'o'
   String turn = 'x'; // 'x', 'o'
   int? lastMoveCellIndex; // Track last move for highlighting
+  final _gameSettings = GameSettingsService();
+
+  @override
+  void initState() {
+    super.initState();
+    _loadDimmingSetting();
+    // Listen to dimming setting changes
+    _gameSettings.dimmingEnabled.addListener(_onDimmingChanged);
+  }
+
+  @override
+  void dispose() {
+    _gameSettings.dimmingEnabled.removeListener(_onDimmingChanged);
+    super.dispose();
+  }
+
+  void _onDimmingChanged() {
+    if (mounted) {
+      setState(() {
+        // Rebuild when dimming setting changes
+      });
+    }
+  }
+
+  Future<void> _loadDimmingSetting() async {
+    await _gameSettings.initialize();
+    if (mounted) {
+      setState(() {});
+    }
+  }
 
   bool checkGameOver() {
     if (isGameOver) {
@@ -331,12 +362,15 @@ class SmallBoardState extends State<SmallBoard> {
     // - In online mode: ONLY dim inactive boards when it IS your turn
     // - When ultimate game is over: undim everything (show final board state)
     // - When small board is won: still dim it
-    final bool isDimmed = widget.isUltimateGameOver
+    // - Respect user's dimming preference from settings
+    final bool shouldDim = widget.isUltimateGameOver
         ? false
         : (isGameOver ||
               (widget.isOnlineMode
                   ? (widget.isMyTurn && !widget.isActive)
                   : !widget.isActive));
+    
+    final bool isDimmed = _gameSettings.isDimmingEnabled && shouldDim;
 
     return Container(
       height: minScreenSize,
