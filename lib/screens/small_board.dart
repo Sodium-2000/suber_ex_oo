@@ -369,7 +369,7 @@ class SmallBoardState extends State<SmallBoard> {
               (widget.isOnlineMode
                   ? (widget.isMyTurn && !widget.isActive)
                   : !widget.isActive));
-    
+
     final bool isDimmed = _gameSettings.isDimmingEnabled && shouldDim;
 
     return Container(

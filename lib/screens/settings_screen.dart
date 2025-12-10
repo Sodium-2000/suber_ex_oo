@@ -168,6 +168,20 @@ class SettingsScreen extends StatelessWidget {
 
             // Color theme section
             _buildColorSection(context),
+
+            const SizedBox(height: 24),
+
+            // Version section
+            _SettingsSection(
+              title: tr('about_section'),
+              children: [
+                ListTile(
+                  title: Text(tr('version')),
+                  subtitle: const Text('0.1.0+2'),
+                  leading: const Icon(Icons.info_outline),
+                ),
+              ],
+            ),
           ],
         ),
       ),

@@ -10,7 +10,7 @@ class GameSettingsService {
   static const String _dimmingEnabledKey = 'dimming_enabled';
 
   SharedPreferences? _prefs;
-  
+
   // Use ValueNotifier to notify listeners when settings change
   final ValueNotifier<bool> dimmingEnabled = ValueNotifier<bool>(true);
 

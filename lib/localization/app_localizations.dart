@@ -66,6 +66,8 @@ const Map<String, Map<String, String>> _translations = {
     'waiting_reconnect': 'Waiting for player to reconnect...',
     'reconnecting': 'Reconnecting...',
     'room_timeout': 'Room Timeout',
+    'about_section': 'About',
+    'version': 'Version',
   },
   'ar': {
     'restart_title': 'إعادة بدء اللعبة؟',
@@ -129,6 +131,8 @@ const Map<String, Map<String, String>> _translations = {
     'waiting_reconnect': 'في انتظار إعادة اتصال اللاعب...',
     'reconnecting': 'جاري إعادة الاتصال...',
     'room_timeout': 'مهلة الغرفة انتهت',
+    'about_section': 'حول',
+    'version': 'الإصدار',
   },
 };
 
