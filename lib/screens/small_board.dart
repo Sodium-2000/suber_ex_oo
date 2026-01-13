@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:super_xo/theme/app_theme.dart';
 import 'package:super_xo/widgets/button.dart';
 import 'package:super_xo/services/game_settings_service.dart';
+import 'package:super_xo/services/sound_service.dart';
 
 class SmallBoard extends StatefulWidget {
   final String currentTurn;
@@ -41,11 +42,13 @@ class SmallBoardState extends State<SmallBoard> {
   String turn = 'x'; // 'x', 'o'
   int? lastMoveCellIndex; // Track last move for highlighting
   final _gameSettings = GameSettingsService();
+  final _soundService = SoundService();
 
   @override
   void initState() {
     super.initState();
     _loadDimmingSetting();
+    _soundService.initialize();
     // Listen to dimming setting changes
     _gameSettings.dimmingEnabled.addListener(_onDimmingChanged);
   }
@@ -402,6 +405,7 @@ class SmallBoardState extends State<SmallBoard> {
                       isHighlighted: lastMoveCellIndex == 0,
                     ),
                     onTap: () {
+                      _soundService.play(SoundEffect.move);
                       play(0);
                     },
                   ),
@@ -411,6 +415,7 @@ class SmallBoardState extends State<SmallBoard> {
                       isHighlighted: lastMoveCellIndex == 1,
                     ),
                     onTap: () {
+                      _soundService.play(SoundEffect.move);
                       play(1);
                     },
                   ),
@@ -420,6 +425,7 @@ class SmallBoardState extends State<SmallBoard> {
                       isHighlighted: lastMoveCellIndex == 2,
                     ),
                     onTap: () {
+                      _soundService.play(SoundEffect.move);
                       play(2);
                     },
                   ),
@@ -435,6 +441,7 @@ class SmallBoardState extends State<SmallBoard> {
                       isHighlighted: lastMoveCellIndex == 3,
                     ),
                     onTap: () {
+                      _soundService.play(SoundEffect.move);
                       play(3);
                     },
                   ),
@@ -444,6 +451,7 @@ class SmallBoardState extends State<SmallBoard> {
                       isHighlighted: lastMoveCellIndex == 4,
                     ),
                     onTap: () {
+                      _soundService.play(SoundEffect.move);
                       play(4);
                     },
                   ),
@@ -453,6 +461,7 @@ class SmallBoardState extends State<SmallBoard> {
                       isHighlighted: lastMoveCellIndex == 5,
                     ),
                     onTap: () {
+                      _soundService.play(SoundEffect.move);
                       play(5);
                     },
                   ),
@@ -468,6 +477,7 @@ class SmallBoardState extends State<SmallBoard> {
                       isHighlighted: lastMoveCellIndex == 6,
                     ),
                     onTap: () {
+                      _soundService.play(SoundEffect.move);
                       play(6);
                     },
                   ),
@@ -477,6 +487,7 @@ class SmallBoardState extends State<SmallBoard> {
                       isHighlighted: lastMoveCellIndex == 7,
                     ),
                     onTap: () {
+                      _soundService.play(SoundEffect.move);
                       play(7);
                     },
                   ),
@@ -486,6 +497,7 @@ class SmallBoardState extends State<SmallBoard> {
                       isHighlighted: lastMoveCellIndex == 8,
                     ),
                     onTap: () {
+                      _soundService.play(SoundEffect.move);
                       play(8);
                     },
                   ),

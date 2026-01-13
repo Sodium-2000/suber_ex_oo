@@ -37,7 +37,7 @@ class SoundService {
       // Create a new player for each sound to allow concurrent playback
       final player = AudioPlayer();
       await player.play(AssetSource(path));
-      
+
       // Auto-dispose when sound completes
       player.onPlayerComplete.listen((_) {
         player.dispose();

@@ -177,7 +177,7 @@ class SettingsScreen extends StatelessWidget {
               children: [
                 ListTile(
                   title: Text(tr('version')),
-                  subtitle: const Text('1.0.1'),
+                  subtitle: const Text('0.1.4'),
                   leading: const Icon(Icons.info_outline),
                 ),
               ],

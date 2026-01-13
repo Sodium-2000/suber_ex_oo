@@ -57,6 +57,11 @@ class _UltimateBoard extends State<UltimateBoard> {
   bool _isReconnecting = false;
   bool _hasRequestedRestart = false;
   bool _opponentRequestedRestart = false;
+  bool _isGamePaused = false;
+
+  // Pending move tracking for reconnection
+  Map<String, dynamic>? _pendingMove;
+  Timer? _moveTimeoutTimer;
 
   @override
   void initState() {
@@ -112,6 +117,18 @@ class _UltimateBoard extends State<UltimateBoard> {
             break;
           case 'ROOM_TIMEOUT':
             _handleRoomTimeout(payload);
+            break;
+          case 'GAME_PAUSED':
+            _handleGamePaused(payload);
+            break;
+          case 'GAME_RESUMED':
+            _handleGameResumed(payload);
+            break;
+          case 'ROOM_CLOSING_SOON':
+            _handleRoomClosingSoon(payload);
+            break;
+          case 'CONNECTION_LOST':
+            _handleConnectionLost();
             break;
         }
       },
@@ -180,6 +197,10 @@ class _UltimateBoard extends State<UltimateBoard> {
   }
 
   void _handleOpponentMove(Map<String, dynamic> payload) {
+    // Clear pending move on any move confirmation
+    _pendingMove = null;
+    _moveTimeoutTimer?.cancel();
+    
     final moveData = MoveData.fromJson(payload);
     // In online mode, process ALL moves from server (including our own)
     // This ensures synchronization - the client doesn't play locally
@@ -187,11 +208,6 @@ class _UltimateBoard extends State<UltimateBoard> {
     final boardIndex = moveData.boardIndex;
     final cellIndex = moveData.cellIndex;
     final playedBy = moveData.playedBy;
-
-    // Play opponent move sound (only if it's not our own move)
-    if (playedBy != _currentPlayerSymbol) {
-      _soundService.play(SoundEffect.opponentMove);
-    }
 
     // Clear all previous highlights before setting the new one
     for (int i = 0; i < 9; i++) {
@@ -290,6 +306,7 @@ class _UltimateBoard extends State<UltimateBoard> {
   void _handlePlayerDisconnected(Map<String, dynamic> payload) {
     setState(() {
       _isOpponentDisconnected = true;
+      _isGamePaused = true;
     });
 
     // Show a non-blocking notification
@@ -320,6 +337,31 @@ class _UltimateBoard extends State<UltimateBoard> {
   void _handleReconnected(Map<String, dynamic> payload) {
     // Successfully reconnected, restore game state from server
     _initializeFromGameState(payload);
+
+    // Resend pending move if exists
+    if (_pendingMove != null) {
+      print('🔄 Resending pending move after reconnection');
+      try {
+        widget.wsService?.send(
+          MakeMoveMessage(
+            boardIndex: _pendingMove!['boardIndex'],
+            cellIndex: _pendingMove!['cellIndex'],
+          ),
+        );
+        // Restart the timeout timer
+        _moveTimeoutTimer?.cancel();
+        _moveTimeoutTimer = Timer(const Duration(seconds: 5), () {
+          if (_pendingMove != null && mounted) {
+            print('⚠️ Move confirmation timeout after resend - clearing pending move');
+            _pendingMove = null;
+          }
+        });
+      } catch (e) {
+        print('❌ Error resending pending move: $e');
+        _pendingMove = null;
+        _moveTimeoutTimer?.cancel();
+      }
+    }
 
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
@@ -423,6 +465,69 @@ class _UltimateBoard extends State<UltimateBoard> {
     );
   }
 
+  void _handleGamePaused(Map<String, dynamic> payload) {
+    // Clear any pending move when game is paused
+    _pendingMove = null;
+    _moveTimeoutTimer?.cancel();
+    
+    setState(() {
+      _isGamePaused = true;
+    });
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(payload['reason'] ?? 'Game paused'),
+        duration: const Duration(seconds: 3),
+        backgroundColor: Colors.blue,
+      ),
+    );
+  }
+
+  void _handleGameResumed(Map<String, dynamic> payload) {
+    setState(() {
+      _isGamePaused = false;
+      _isOpponentDisconnected = false;
+      _isReconnecting = false;
+    });
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(payload['message'] ?? 'Game resumed'),
+        duration: const Duration(seconds: 2),
+        backgroundColor: Colors.green,
+      ),
+    );
+  }
+
+  void _handleRoomClosingSoon(Map<String, dynamic> payload) {
+    final timeLeft = payload['timeLeft'] ?? 60;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('Room closing in $timeLeft seconds. Reconnect now!'),
+        duration: const Duration(seconds: 5),
+        backgroundColor: Colors.red,
+        action: SnackBarAction(
+          label: 'Reconnect',
+          onPressed: _attemptReconnection,
+        ),
+      ),
+    );
+  }
+
+  void _handleConnectionLost() {
+    setState(() {
+      _isReconnecting = true;
+    });
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Connection lost. Attempting to reconnect...'),
+        duration: Duration(seconds: 3),
+        backgroundColor: Colors.red,
+      ),
+    );
+  }
+
   void _showExitDialog() {
     showDialog(
       context: context,
@@ -477,6 +582,12 @@ class _UltimateBoard extends State<UltimateBoard> {
     Navigator.of(context).popUntil((route) => route.isFirst);
   }
 
+  void _leaveRoom() {
+    // Send leave room message and exit
+    widget.wsService?.send(LeaveRoomMessage());
+    _exitGame();
+  }
+
   void _handleOpponentLeft() {
     // Reset restart flags when opponent leaves
     setState(() {
@@ -518,6 +629,9 @@ class _UltimateBoard extends State<UltimateBoard> {
 
   @override
   void dispose() {
+    // Cancel move timeout timer
+    _moveTimeoutTimer?.cancel();
+    
     // Cancel WebSocket subscription
     _wsSubscription?.cancel();
 
@@ -537,15 +651,51 @@ class _UltimateBoard extends State<UltimateBoard> {
 
   // more explicit handler used by SmallBoard: (playedBy, boardIndex, cellIndex)
   void handleMoveFull(String playedBy, int boardIndex, int cellIndex) {
-    // Play move sound effect
-    _soundService.play(SoundEffect.move);
-
+    // Don't allow moves if game is paused
+    if (_isGamePaused) {
+      return;
+    }
+    
     // In online mode, send to server and wait for server to broadcast back
     if (isOnlineMode) {
-      widget.wsService?.send(
-        MakeMoveMessage(boardIndex: boardIndex, cellIndex: cellIndex),
-      );
-      return; // Don't update state locally - wait for server confirmation
+      try {
+        // Cancel any existing pending move timeout
+        _moveTimeoutTimer?.cancel();
+        
+        // Set pending move
+        _pendingMove = {
+          'boardIndex': boardIndex,
+          'cellIndex': cellIndex,
+          'timestamp': DateTime.now().millisecondsSinceEpoch,
+        };
+        
+        // Send the move
+        widget.wsService?.send(
+          MakeMoveMessage(boardIndex: boardIndex, cellIndex: cellIndex),
+        );
+        
+        // Start timeout timer for move confirmation
+        _moveTimeoutTimer = Timer(const Duration(seconds: 5), () {
+          if (_pendingMove != null && mounted) {
+            print('⚠️ Move confirmation timeout - attempting reconnection');
+            _pendingMove = null;
+            if (!_isReconnecting) {
+              _attemptReconnection();
+            }
+          }
+        });
+        
+        return; // Don't update state locally - wait for server confirmation
+      } catch (e) {
+        print('❌ Error sending move: $e');
+        // If sending fails, clear pending move and try to reconnect
+        _pendingMove = null;
+        _moveTimeoutTimer?.cancel();
+        if (!_isReconnecting) {
+          _attemptReconnection();
+        }
+        return;
+      }
     }
 
     // Local mode: Clear all previous highlights before new move
@@ -962,7 +1112,7 @@ class _UltimateBoard extends State<UltimateBoard> {
                           index: 0,
                           isActive:
                               (activeBoard == -1 || activeBoard == 0) &&
-                              isMyTurn,
+                              isMyTurn && !_isGamePaused,
                           isUltimateGameOver: isUltimateGameOver,
                           resetSignal: resetCounter,
                           isOnlineMode: isOnlineMode,
@@ -975,7 +1125,7 @@ class _UltimateBoard extends State<UltimateBoard> {
                           index: 1,
                           isActive:
                               (activeBoard == -1 || activeBoard == 1) &&
-                              isMyTurn,
+                              isMyTurn && !_isGamePaused,
                           isUltimateGameOver: isUltimateGameOver,
                           resetSignal: resetCounter,
                           isOnlineMode: isOnlineMode,
@@ -988,7 +1138,7 @@ class _UltimateBoard extends State<UltimateBoard> {
                           index: 2,
                           isActive:
                               (activeBoard == -1 || activeBoard == 2) &&
-                              isMyTurn,
+                              isMyTurn && !_isGamePaused,
                           isUltimateGameOver: isUltimateGameOver,
                           resetSignal: resetCounter,
                           isOnlineMode: isOnlineMode,
@@ -1006,7 +1156,7 @@ class _UltimateBoard extends State<UltimateBoard> {
                           index: 3,
                           isActive:
                               (activeBoard == -1 || activeBoard == 3) &&
-                              isMyTurn,
+                              isMyTurn && !_isGamePaused,
                           isUltimateGameOver: isUltimateGameOver,
                           resetSignal: resetCounter,
                           isOnlineMode: isOnlineMode,
@@ -1019,7 +1169,7 @@ class _UltimateBoard extends State<UltimateBoard> {
                           index: 4,
                           isActive:
                               (activeBoard == -1 || activeBoard == 4) &&
-                              isMyTurn,
+                              isMyTurn && !_isGamePaused,
                           isUltimateGameOver: isUltimateGameOver,
                           resetSignal: resetCounter,
                           isOnlineMode: isOnlineMode,
@@ -1032,7 +1182,7 @@ class _UltimateBoard extends State<UltimateBoard> {
                           index: 5,
                           isActive:
                               (activeBoard == -1 || activeBoard == 5) &&
-                              isMyTurn,
+                              isMyTurn && !_isGamePaused,
                           isUltimateGameOver: isUltimateGameOver,
                           resetSignal: resetCounter,
                           isOnlineMode: isOnlineMode,
@@ -1050,7 +1200,7 @@ class _UltimateBoard extends State<UltimateBoard> {
                           index: 6,
                           isActive:
                               (activeBoard == -1 || activeBoard == 6) &&
-                              isMyTurn,
+                              isMyTurn && !_isGamePaused,
                           isUltimateGameOver: isUltimateGameOver,
                           resetSignal: resetCounter,
                           isOnlineMode: isOnlineMode,
@@ -1063,7 +1213,7 @@ class _UltimateBoard extends State<UltimateBoard> {
                           index: 7,
                           isActive:
                               (activeBoard == -1 || activeBoard == 7) &&
-                              isMyTurn,
+                              isMyTurn && !_isGamePaused,
                           isUltimateGameOver: isUltimateGameOver,
                           resetSignal: resetCounter,
                           isOnlineMode: isOnlineMode,
@@ -1076,7 +1226,7 @@ class _UltimateBoard extends State<UltimateBoard> {
                           index: 8,
                           isActive:
                               (activeBoard == -1 || activeBoard == 8) &&
-                              isMyTurn,
+                              isMyTurn && !_isGamePaused,
                           isUltimateGameOver: isUltimateGameOver,
                           resetSignal: resetCounter,
                           isOnlineMode: isOnlineMode,
@@ -1089,7 +1239,7 @@ class _UltimateBoard extends State<UltimateBoard> {
             ),
 
             // Reconnection/Disconnection overlay
-            if (_isReconnecting || _isOpponentDisconnected)
+            if (_isReconnecting || _isOpponentDisconnected || _isGamePaused)
               Container(
                 color: Colors.black54,
                 child: Center(
@@ -1121,6 +1271,28 @@ class _UltimateBoard extends State<UltimateBoard> {
                             const SizedBox(height: 8),
                             Text(
                               tr('waiting_reconnect'),
+                              style: Theme.of(context).textTheme.bodyMedium,
+                              textAlign: TextAlign.center,
+                            ),
+                            const SizedBox(height: 16),
+                            ElevatedButton(
+                              onPressed: _leaveRoom,
+                              child: const Text('Leave Room'),
+                            ),
+                          ] else if (_isGamePaused) ...[
+                            const Icon(
+                              Icons.pause_circle_filled,
+                              size: 48,
+                              color: Colors.blue,
+                            ),
+                            const SizedBox(height: 16),
+                            Text(
+                              'Game Paused',
+                              style: Theme.of(context).textTheme.titleLarge,
+                            ),
+                            const SizedBox(height: 8),
+                            Text(
+                              'Waiting for opponent to reconnect...',
                               style: Theme.of(context).textTheme.bodyMedium,
                               textAlign: TextAlign.center,
                             ),
