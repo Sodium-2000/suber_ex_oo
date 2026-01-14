@@ -86,9 +86,16 @@ class _OnlineLobbyScreenState extends State<OnlineLobbyScreen> {
       _isCheckingRoom = true;
     });
 
-    _wsService.send(
-      CheckRoomMessage(playerId: _lastPlayerId!, roomCode: _lastRoomCode!),
-    );
+    try {
+      _wsService.send(
+        CheckRoomMessage(playerId: _lastPlayerId!, roomCode: _lastRoomCode!),
+      );
+    } catch (e) {
+      setState(() {
+        _isCheckingRoom = false;
+        _errorMessage = 'Failed to check room status';
+      });
+    }
   }
 
   Future<void> _connectToServer() async {
@@ -271,7 +278,13 @@ class _OnlineLobbyScreenState extends State<OnlineLobbyScreen> {
     setState(() {
       _errorMessage = null;
     });
-    _wsService.send(CreateRoomMessage());
+    try {
+      _wsService.send(CreateRoomMessage());
+    } catch (e) {
+      setState(() {
+        _errorMessage = 'Failed to create room';
+      });
+    }
   }
 
   void _joinRoom() {
@@ -290,7 +303,13 @@ class _OnlineLobbyScreenState extends State<OnlineLobbyScreen> {
       return;
     }
 
-    _wsService.send(JoinRoomMessage(roomCode));
+    try {
+      _wsService.send(JoinRoomMessage(roomCode));
+    } catch (e) {
+      setState(() {
+        _errorMessage = 'Failed to join room';
+      });
+    }
   }
 
   void _reconnectToLastRoom() {
@@ -311,9 +330,15 @@ class _OnlineLobbyScreenState extends State<OnlineLobbyScreen> {
     setState(() {
       _errorMessage = null;
     });
-    _wsService.send(
-      ReconnectMessage(playerId: _lastPlayerId!, roomCode: _lastRoomCode!),
-    );
+    try {
+      _wsService.send(
+        ReconnectMessage(playerId: _lastPlayerId!, roomCode: _lastRoomCode!),
+      );
+    } catch (e) {
+      setState(() {
+        _errorMessage = 'Failed to reconnect to room';
+      });
+    }
   }
 
   @override
@@ -404,7 +429,12 @@ class _OnlineLobbyScreenState extends State<OnlineLobbyScreen> {
             const SizedBox(height: 24),
             TextButton(
               onPressed: () {
-                _wsService.send(LeaveRoomMessage());
+                try {
+                  _wsService.send(LeaveRoomMessage());
+                } catch (e) {
+                  // Ignore errors when leaving
+                  print('Failed to send leave message: $e');
+                }
                 setState(() {
                   _isWaitingForOpponent = false;
                   _currentRoomCode = null;

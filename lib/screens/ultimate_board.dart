@@ -200,7 +200,7 @@ class _UltimateBoard extends State<UltimateBoard> {
     // Clear pending move on any move confirmation
     _pendingMove = null;
     _moveTimeoutTimer?.cancel();
-    
+
     final moveData = MoveData.fromJson(payload);
     // In online mode, process ALL moves from server (including our own)
     // This ensures synchronization - the client doesn't play locally
@@ -295,7 +295,19 @@ class _UltimateBoard extends State<UltimateBoard> {
               setState(() {
                 _hasRequestedRestart = true;
               });
-              widget.wsService?.send(RestartGameMessage());
+              try {
+                widget.wsService?.send(RestartGameMessage());
+              } catch (e) {
+                // Reset state if sending fails
+                setState(() {
+                  _hasRequestedRestart = false;
+                });
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Failed to send restart request'),
+                  ),
+                );
+              }
             }
           },
         ),
@@ -352,7 +364,9 @@ class _UltimateBoard extends State<UltimateBoard> {
         _moveTimeoutTimer?.cancel();
         _moveTimeoutTimer = Timer(const Duration(seconds: 5), () {
           if (_pendingMove != null && mounted) {
-            print('⚠️ Move confirmation timeout after resend - clearing pending move');
+            print(
+              '⚠️ Move confirmation timeout after resend - clearing pending move',
+            );
             _pendingMove = null;
           }
         });
@@ -469,7 +483,7 @@ class _UltimateBoard extends State<UltimateBoard> {
     // Clear any pending move when game is paused
     _pendingMove = null;
     _moveTimeoutTimer?.cancel();
-    
+
     setState(() {
       _isGamePaused = true;
     });
@@ -573,7 +587,12 @@ class _UltimateBoard extends State<UltimateBoard> {
   void _exitGame() {
     // If in online mode, send leave room message
     if (isOnlineMode) {
-      widget.wsService?.send(LeaveRoomMessage());
+      try {
+        widget.wsService?.send(LeaveRoomMessage());
+      } catch (e) {
+        // Ignore errors when leaving - we're disconnecting anyway
+        print('Failed to send leave message when exiting: $e');
+      }
       // Dispose WebSocket connection
       widget.wsService?.dispose();
     }
@@ -584,7 +603,12 @@ class _UltimateBoard extends State<UltimateBoard> {
 
   void _leaveRoom() {
     // Send leave room message and exit
-    widget.wsService?.send(LeaveRoomMessage());
+    try {
+      widget.wsService?.send(LeaveRoomMessage());
+    } catch (e) {
+      // Ignore errors when leaving
+      print('Failed to send leave message when leaving room: $e');
+    }
     _exitGame();
   }
 
@@ -631,14 +655,19 @@ class _UltimateBoard extends State<UltimateBoard> {
   void dispose() {
     // Cancel move timeout timer
     _moveTimeoutTimer?.cancel();
-    
+
     // Cancel WebSocket subscription
     _wsSubscription?.cancel();
 
     if (isOnlineMode) {
       // Only send leave message, don't dispose the WebSocket service
       // The lobby screen manages the WebSocket lifecycle
-      widget.wsService?.send(LeaveRoomMessage());
+      try {
+        widget.wsService?.send(LeaveRoomMessage());
+      } catch (e) {
+        // Ignore errors when sending leave message during disposal
+        print('Failed to send leave message during disposal: $e');
+      }
     }
     super.dispose();
   }
@@ -655,25 +684,25 @@ class _UltimateBoard extends State<UltimateBoard> {
     if (_isGamePaused) {
       return;
     }
-    
+
     // In online mode, send to server and wait for server to broadcast back
     if (isOnlineMode) {
       try {
         // Cancel any existing pending move timeout
         _moveTimeoutTimer?.cancel();
-        
+
         // Set pending move
         _pendingMove = {
           'boardIndex': boardIndex,
           'cellIndex': cellIndex,
           'timestamp': DateTime.now().millisecondsSinceEpoch,
         };
-        
+
         // Send the move
         widget.wsService?.send(
           MakeMoveMessage(boardIndex: boardIndex, cellIndex: cellIndex),
         );
-        
+
         // Start timeout timer for move confirmation
         _moveTimeoutTimer = Timer(const Duration(seconds: 5), () {
           if (_pendingMove != null && mounted) {
@@ -684,7 +713,7 @@ class _UltimateBoard extends State<UltimateBoard> {
             }
           }
         });
-        
+
         return; // Don't update state locally - wait for server confirmation
       } catch (e) {
         print('❌ Error sending move: $e');
@@ -951,7 +980,18 @@ class _UltimateBoard extends State<UltimateBoard> {
         setState(() {
           _hasRequestedRestart = true;
         });
-        widget.wsService?.send(RestartGameMessage());
+        try {
+          widget.wsService?.send(RestartGameMessage());
+        } catch (e) {
+          // Reset state if sending fails
+          setState(() {
+            _hasRequestedRestart = false;
+          });
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Failed to send restart request')),
+          );
+          return;
+        }
 
         // Show waiting indicator
         ScaffoldMessenger.of(context).showSnackBar(
@@ -1112,7 +1152,8 @@ class _UltimateBoard extends State<UltimateBoard> {
                           index: 0,
                           isActive:
                               (activeBoard == -1 || activeBoard == 0) &&
-                              isMyTurn && !_isGamePaused,
+                              isMyTurn &&
+                              !_isGamePaused,
                           isUltimateGameOver: isUltimateGameOver,
                           resetSignal: resetCounter,
                           isOnlineMode: isOnlineMode,
@@ -1125,7 +1166,8 @@ class _UltimateBoard extends State<UltimateBoard> {
                           index: 1,
                           isActive:
                               (activeBoard == -1 || activeBoard == 1) &&
-                              isMyTurn && !_isGamePaused,
+                              isMyTurn &&
+                              !_isGamePaused,
                           isUltimateGameOver: isUltimateGameOver,
                           resetSignal: resetCounter,
                           isOnlineMode: isOnlineMode,
@@ -1138,7 +1180,8 @@ class _UltimateBoard extends State<UltimateBoard> {
                           index: 2,
                           isActive:
                               (activeBoard == -1 || activeBoard == 2) &&
-                              isMyTurn && !_isGamePaused,
+                              isMyTurn &&
+                              !_isGamePaused,
                           isUltimateGameOver: isUltimateGameOver,
                           resetSignal: resetCounter,
                           isOnlineMode: isOnlineMode,
@@ -1156,7 +1199,8 @@ class _UltimateBoard extends State<UltimateBoard> {
                           index: 3,
                           isActive:
                               (activeBoard == -1 || activeBoard == 3) &&
-                              isMyTurn && !_isGamePaused,
+                              isMyTurn &&
+                              !_isGamePaused,
                           isUltimateGameOver: isUltimateGameOver,
                           resetSignal: resetCounter,
                           isOnlineMode: isOnlineMode,
@@ -1169,7 +1213,8 @@ class _UltimateBoard extends State<UltimateBoard> {
                           index: 4,
                           isActive:
                               (activeBoard == -1 || activeBoard == 4) &&
-                              isMyTurn && !_isGamePaused,
+                              isMyTurn &&
+                              !_isGamePaused,
                           isUltimateGameOver: isUltimateGameOver,
                           resetSignal: resetCounter,
                           isOnlineMode: isOnlineMode,
@@ -1182,7 +1227,8 @@ class _UltimateBoard extends State<UltimateBoard> {
                           index: 5,
                           isActive:
                               (activeBoard == -1 || activeBoard == 5) &&
-                              isMyTurn && !_isGamePaused,
+                              isMyTurn &&
+                              !_isGamePaused,
                           isUltimateGameOver: isUltimateGameOver,
                           resetSignal: resetCounter,
                           isOnlineMode: isOnlineMode,
@@ -1200,7 +1246,8 @@ class _UltimateBoard extends State<UltimateBoard> {
                           index: 6,
                           isActive:
                               (activeBoard == -1 || activeBoard == 6) &&
-                              isMyTurn && !_isGamePaused,
+                              isMyTurn &&
+                              !_isGamePaused,
                           isUltimateGameOver: isUltimateGameOver,
                           resetSignal: resetCounter,
                           isOnlineMode: isOnlineMode,
@@ -1213,7 +1260,8 @@ class _UltimateBoard extends State<UltimateBoard> {
                           index: 7,
                           isActive:
                               (activeBoard == -1 || activeBoard == 7) &&
-                              isMyTurn && !_isGamePaused,
+                              isMyTurn &&
+                              !_isGamePaused,
                           isUltimateGameOver: isUltimateGameOver,
                           resetSignal: resetCounter,
                           isOnlineMode: isOnlineMode,
@@ -1226,7 +1274,8 @@ class _UltimateBoard extends State<UltimateBoard> {
                           index: 8,
                           isActive:
                               (activeBoard == -1 || activeBoard == 8) &&
-                              isMyTurn && !_isGamePaused,
+                              isMyTurn &&
+                              !_isGamePaused,
                           isUltimateGameOver: isUltimateGameOver,
                           resetSignal: resetCounter,
                           isOnlineMode: isOnlineMode,
