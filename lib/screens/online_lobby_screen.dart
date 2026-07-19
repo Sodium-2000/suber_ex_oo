@@ -7,6 +7,7 @@ import 'package:super_xo/services/websocket_service.dart';
 import 'package:super_xo/models/websocket_message.dart';
 import 'package:super_xo/screens/ultimate_board.dart';
 import 'package:super_xo/models/game_mode.dart';
+import 'package:super_xo/widgets/staged_status_view.dart';
 
 /// Online lobby screen for creating or joining game rooms
 class OnlineLobbyScreen extends StatefulWidget {
@@ -29,9 +30,7 @@ class _OnlineLobbyScreenState extends State<OnlineLobbyScreen> {
   bool _isInGame = false; // Track if we've navigated to game
   String? _lastRoomCode;
   String? _lastPlayerId;
-  bool _isLoadingLastRoom = true;
   bool _canReconnectToLastRoom = false;
-  bool _isCheckingRoom = false;
 
   // WebSocket server URL - change this to your server URL
   static const String wsUrl = 'wss://super-xo-backend.onrender.com';
@@ -49,7 +48,6 @@ class _OnlineLobbyScreenState extends State<OnlineLobbyScreen> {
     setState(() {
       _lastRoomCode = prefs.getString('last_room_code');
       _lastPlayerId = prefs.getString('last_player_id');
-      _isLoadingLastRoom = false;
     });
 
     // Check if room is still active after loading
@@ -85,17 +83,12 @@ class _OnlineLobbyScreenState extends State<OnlineLobbyScreen> {
     if (_lastRoomCode == null || _lastPlayerId == null) return;
     if (!_wsService.isConnected) return;
 
-    setState(() {
-      _isCheckingRoom = true;
-    });
-
     try {
       _wsService.send(
         CheckRoomMessage(playerId: _lastPlayerId!, roomCode: _lastRoomCode!),
       );
     } catch (e) {
       setState(() {
-        _isCheckingRoom = false;
         _errorMessage = 'Failed to check room status';
       });
     }
@@ -109,7 +102,7 @@ class _OnlineLobbyScreenState extends State<OnlineLobbyScreen> {
     });
 
     try {
-      await _wsService.connect(wsUrl);
+      await _wsService.connect(wsUrl, timeout: WebSocketService.coldStartTimeout);
       if (!mounted) return;
       _listenToMessages();
       if (!mounted) return;
@@ -199,14 +192,11 @@ class _OnlineLobbyScreenState extends State<OnlineLobbyScreen> {
 
   void _handleReconnected(Map<String, dynamic> payload) {
     if (!mounted) return;
-    print('🔄 Lobby: RECONNECTED received');
-    print('🔄 Payload: $payload');
     final roomInfo = RoomInfo.fromJson(payload);
     _playerId = roomInfo.playerId;
     _playerSymbol = roomInfo.playerSymbol;
 
     // Navigate to game with initial game state
-    print('🔄 Navigating to game with initialGameState');
     if (!mounted) return;
     _navigateToGame(roomInfo.roomCode, initialGameState: payload);
   }
@@ -233,7 +223,6 @@ class _OnlineLobbyScreenState extends State<OnlineLobbyScreen> {
   void _handleRoomCheckResult(Map<String, dynamic> payload) {
     if (!mounted) return;
     setState(() {
-      _isCheckingRoom = false;
       final exists = payload['exists'] ?? false;
       final canReconnect = payload['canReconnect'] ?? false;
 
@@ -383,7 +372,7 @@ class _OnlineLobbyScreenState extends State<OnlineLobbyScreen> {
       appBar: AppBar(title: Text(tr('play_online')), centerTitle: true),
       body: SafeArea(
         child: _isConnecting
-            ? const Center(child: CircularProgressIndicator())
+            ? const Center(child: StagedStatusView(stages: kConnectingStages))
             : _isWaitingForOpponent
             ? _buildWaitingScreen()
             : _buildLobbyScreen(),
@@ -457,7 +446,6 @@ class _OnlineLobbyScreenState extends State<OnlineLobbyScreen> {
                   _wsService.send(LeaveRoomMessage());
                 } catch (e) {
                   // Ignore errors when leaving
-                  print('Failed to send leave message: $e');
                 }
                 setState(() {
                   _isWaitingForOpponent = false;

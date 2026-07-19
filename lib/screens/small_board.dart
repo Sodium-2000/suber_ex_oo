@@ -228,17 +228,12 @@ class SmallBoardState extends State<SmallBoard> {
     String boardWinner,
     bool boardIsGameOver,
   ) {
-    print('🔄 SmallBoard ${widget.index}: restoreState called');
-    print('   Cells: $cells');
-    print('   Winner: $boardWinner');
-    print('   IsGameOver: $boardIsGameOver');
     setState(() {
       board3x3 = List<String>.from(cells);
       winner = boardWinner;
       isGameOver = boardIsGameOver;
       lastMoveCellIndex = null; // Clear highlight on restore
     });
-    print('✅ SmallBoard ${widget.index}: State restored');
   }
 
   // compute winner without mutating or notifying parent

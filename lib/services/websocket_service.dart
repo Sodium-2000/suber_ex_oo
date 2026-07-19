@@ -16,6 +16,11 @@ class WebSocketService {
   Timer? _reconnectTimer;
   bool _isClosed = false;
 
+  /// Render's free tier can take close to a minute to wake up a cold-started
+  /// server, so connection attempts need to tolerate that instead of failing
+  /// fast like a normal request would.
+  static const Duration coldStartTimeout = Duration(seconds: 80);
+
   bool get isConnected => _channel != null;
 
   /// Check if the WebSocket is ready to send messages
@@ -58,15 +63,13 @@ class WebSocketService {
               _messageController.add(data);
             }
           } catch (e) {
-            print('Error decoding message: $e');
+            // Ignore malformed messages
           }
         },
         onError: (error) {
-          print('WebSocket error: $error');
           _handleDisconnection();
         },
         onDone: () {
-          print('WebSocket connection closed');
           _handleDisconnection();
         },
       );
@@ -78,7 +81,6 @@ class WebSocketService {
     } catch (e) {
       _channel?.sink.close();
       _channel = null;
-      print('Connection error: $e');
       rethrow;
     }
   }

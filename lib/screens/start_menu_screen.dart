@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:super_xo/localization/app_localizations.dart';
 import 'package:super_xo/screens/ultimate_board.dart';
-import 'package:super_xo/screens/online_lobby_screen.dart';
+import 'package:super_xo/screens/online_mode_select_screen.dart';
 import 'package:super_xo/screens/settings_screen.dart';
 import 'package:super_xo/models/game_mode.dart';
 
@@ -72,7 +72,7 @@ class StartMenuScreen extends StatelessWidget {
                       Navigator.push(
                         context,
                         MaterialPageRoute(
-                          builder: (_) => const OnlineLobbyScreen(),
+                          builder: (_) => const OnlineModeSelectScreen(),
                         ),
                       );
                     },

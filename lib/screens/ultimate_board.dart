@@ -7,6 +7,7 @@ import 'package:super_xo/services/websocket_service.dart';
 import 'package:super_xo/models/websocket_message.dart';
 import 'package:super_xo/screens/settings_screen.dart';
 import 'package:super_xo/services/sound_service.dart';
+import 'package:super_xo/widgets/staged_status_view.dart';
 
 class UltimateBoard extends StatefulWidget {
   final GameMode gameMode;
@@ -56,7 +57,6 @@ class _UltimateBoard extends State<UltimateBoard> {
   bool _isOpponentDisconnected = false;
   bool _isReconnecting = false;
   bool _hasRequestedRestart = false;
-  bool _opponentRequestedRestart = false;
   bool _isGamePaused = false;
   // Prevent re-entrant exit dialogs from showing multiple times
   bool _isShowingExitDialog = false;
@@ -77,11 +77,7 @@ class _UltimateBoard extends State<UltimateBoard> {
 
     // Initialize from reconnection data if available
     if (widget.initialGameState != null) {
-      print('🔄 UltimateBoard: Initializing from game state on reconnection');
-      print('🔄 Game state data: ${widget.initialGameState}');
       _initializeFromGameState(widget.initialGameState!);
-    } else {
-      print('⚠️ UltimateBoard: No initialGameState provided');
     }
 
     if (isOnlineMode) {
@@ -168,7 +164,10 @@ class _UltimateBoard extends State<UltimateBoard> {
 
     try {
       // Try to reconnect to server
-      await widget.wsService?.connect('wss://super-xo-backend.onrender.com');
+      await widget.wsService?.connect(
+        'wss://super-xo-backend.onrender.com',
+        timeout: WebSocketService.coldStartTimeout,
+      );
 
       // Send reconnection message
       widget.wsService?.send(
@@ -292,15 +291,11 @@ class _UltimateBoard extends State<UltimateBoard> {
       resetCounter++; // 🔥 triggers SmallBoards to rebuild/reset
       activeBoard = -1;
       _hasRequestedRestart = false;
-      _opponentRequestedRestart = false;
     });
   }
 
   void _handleRestartRequested(Map<String, dynamic> payload) {
     if (!mounted) return;
-    setState(() {
-      _opponentRequestedRestart = true;
-    });
 
     // Show notification that opponent wants to restart
     ScaffoldMessenger.of(context).showSnackBar(
@@ -377,7 +372,6 @@ class _UltimateBoard extends State<UltimateBoard> {
 
     // Resend pending move if exists
     if (_pendingMove != null) {
-      print('🔄 Resending pending move after reconnection');
       try {
         widget.wsService?.send(
           MakeMoveMessage(
@@ -389,14 +383,10 @@ class _UltimateBoard extends State<UltimateBoard> {
         _moveTimeoutTimer?.cancel();
         _moveTimeoutTimer = Timer(const Duration(seconds: 5), () {
           if (_pendingMove != null && mounted) {
-            print(
-              '⚠️ Move confirmation timeout after resend - clearing pending move',
-            );
             _pendingMove = null;
           }
         });
       } catch (e) {
-        print('❌ Error resending pending move: $e');
         _pendingMove = null;
         _moveTimeoutTimer?.cancel();
       }
@@ -414,17 +404,11 @@ class _UltimateBoard extends State<UltimateBoard> {
   }
 
   void _initializeFromGameState(Map<String, dynamic> payload) {
-    print('🔄 _initializeFromGameState called');
     final gameState = payload['gameState'];
     final serverActiveBoard = payload['activeBoard'];
     final serverCurrentTurn = payload['currentTurn'];
 
-    print('🔄 gameState: $gameState');
-    print('🔄 serverActiveBoard: $serverActiveBoard');
-    print('🔄 serverCurrentTurn: $serverCurrentTurn');
-
     if (!mounted) {
-      print('🔄 _initializeFromGameState aborted: widget not mounted');
       return;
     }
 
@@ -432,8 +416,6 @@ class _UltimateBoard extends State<UltimateBoard> {
       // Restore the game state from server
       final smallBoards = gameState['smallBoards'] as List<dynamic>;
       final bigBoard = gameState['bigBoard'] as List<dynamic>;
-
-      print('🔄 Restoring ${smallBoards.length} small boards');
 
       setState(() {
         // Update current turn and active board
@@ -452,7 +434,6 @@ class _UltimateBoard extends State<UltimateBoard> {
 
       // Wait for the next frame to ensure all SmallBoard widgets are built
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        print('🔄 PostFrameCallback: Restoring small boards');
         // Apply all moves to each small board
         for (
           int boardIndex = 0;
@@ -464,26 +445,18 @@ class _UltimateBoard extends State<UltimateBoard> {
           final winner = boardData['winner'] ?? '';
           final isGameOver = boardData['isGameOver'] ?? false;
 
-          print(
-            '🔄 Board $boardIndex: cells=$cells, winner=$winner, isGameOver=$isGameOver',
-          );
-
           // Get the small board state
           final smallBoardKey = smallBoardKeys[boardIndex];
           final smallBoardState =
               smallBoardKey.currentState as SmallBoardState?;
 
           if (smallBoardState != null) {
-            print('✅ Restoring board $boardIndex');
             // Restore the entire board state at once
             smallBoardState.restoreState(cells, winner, isGameOver);
-          } else {
-            print('❌ Board $boardIndex state is null!');
           }
         }
       });
     } else {
-      print('❌ gameState is null!');
       if (mounted) {
         setState(() {
           _isReconnecting = false;
@@ -695,7 +668,6 @@ class _UltimateBoard extends State<UltimateBoard> {
         widget.wsService?.send(LeaveRoomMessage());
       } catch (e) {
         // Ignore errors when leaving - we're disconnecting anyway
-        print('Failed to send leave message when exiting: $e');
       }
       // Dispose WebSocket connection
       widget.wsService?.dispose();
@@ -711,7 +683,6 @@ class _UltimateBoard extends State<UltimateBoard> {
       widget.wsService?.send(LeaveRoomMessage());
     } catch (e) {
       // Ignore errors when leaving
-      print('Failed to send leave message when leaving room: $e');
     }
     _exitGame();
   }
@@ -720,7 +691,6 @@ class _UltimateBoard extends State<UltimateBoard> {
     // Reset restart flags when opponent leaves
     setState(() {
       _hasRequestedRestart = false;
-      _opponentRequestedRestart = false;
     });
 
     showDialog(
@@ -770,7 +740,6 @@ class _UltimateBoard extends State<UltimateBoard> {
         widget.wsService?.send(LeaveRoomMessage());
       } catch (e) {
         // Ignore errors when sending leave message during disposal
-        print('Failed to send leave message during disposal: $e');
       }
     }
 
@@ -813,7 +782,6 @@ class _UltimateBoard extends State<UltimateBoard> {
         // Start timeout timer for move confirmation
         _moveTimeoutTimer = Timer(const Duration(seconds: 5), () {
           if (_pendingMove != null && mounted) {
-            print('⚠️ Move confirmation timeout - attempting reconnection');
             _pendingMove = null;
             if (!_isReconnecting) {
               _attemptReconnection();
@@ -823,7 +791,6 @@ class _UltimateBoard extends State<UltimateBoard> {
 
         return; // Don't update state locally - wait for server confirmation
       } catch (e) {
-        print('❌ Error sending move: $e');
         // If sending fails, clear pending move and try to reconnect
         _pendingMove = null;
         _moveTimeoutTimer?.cancel();
@@ -1136,39 +1103,37 @@ class _UltimateBoard extends State<UltimateBoard> {
           icon: const Icon(Icons.exit_to_app),
           tooltip: tr('exit_game'),
         ),
-        title: Container(
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              if (isOnlineMode) ...[
-                // Show player indicator in online mode
-                Text(
-                  '${tr('you_are')}: ',
-                  style: const TextStyle(fontSize: 14),
-                ),
-                Container(
-                  width: 24,
-                  child: _currentPlayerSymbol == 'x'
-                      ? const Icon(Icons.close_rounded, size: 24)
-                      : const Icon(Icons.circle_outlined, size: 20),
-                ),
-                const SizedBox(width: 16),
-                const Text('|'),
-                const SizedBox(width: 16),
-              ],
-              const Text('['),
-              Container(
-                width: 30,
-                child: currentTurn == 'x'
-                    ? const Icon(Icons.close_rounded, size: 29)
-                    : const Icon(
-                        Icons.circle_outlined,
-                        fontWeight: FontWeight.bold,
-                      ),
+        title: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (isOnlineMode) ...[
+              // Show player indicator in online mode
+              Text(
+                '${tr('you_are')}: ',
+                style: const TextStyle(fontSize: 14),
               ),
-              const Text(']'),
+              SizedBox(
+                width: 24,
+                child: _currentPlayerSymbol == 'x'
+                    ? const Icon(Icons.close_rounded, size: 24)
+                    : const Icon(Icons.circle_outlined, size: 20),
+              ),
+              const SizedBox(width: 16),
+              const Text('|'),
+              const SizedBox(width: 16),
             ],
-          ),
+            const Text('['),
+            SizedBox(
+              width: 30,
+              child: currentTurn == 'x'
+                  ? const Icon(Icons.close_rounded, size: 29)
+                  : const Icon(
+                      Icons.circle_outlined,
+                      fontWeight: FontWeight.bold,
+                    ),
+            ),
+            const Text(']'),
+          ],
         ),
         centerTitle: true,
         actions: [
@@ -1407,12 +1372,7 @@ class _UltimateBoard extends State<UltimateBoard> {
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           if (_isReconnecting) ...[
-                            const CircularProgressIndicator(),
-                            const SizedBox(height: 16),
-                            Text(
-                              tr('reconnecting'),
-                              style: Theme.of(context).textTheme.titleLarge,
-                            ),
+                            const StagedStatusView(stages: kConnectingStages),
                           ] else if (_isOpponentDisconnected) ...[
                             const Icon(
                               Icons.signal_wifi_off,

@@ -43,7 +43,7 @@ class SoundService {
         player.dispose();
       });
     } catch (e) {
-      print('Error playing sound: $e');
+      // Ignore playback errors (e.g. missing asset on a given platform)
     }
   }
 

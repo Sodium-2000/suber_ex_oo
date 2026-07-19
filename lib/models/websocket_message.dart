@@ -58,6 +58,16 @@ class CheckRoomMessage extends WebSocketMessage {
       );
 }
 
+/// Join the quick-match queue to be paired with a random opponent
+class FindMatchMessage extends WebSocketMessage {
+  FindMatchMessage() : super(type: 'FIND_MATCH', payload: {});
+}
+
+/// Leave the quick-match queue before being paired
+class CancelMatchmakingMessage extends WebSocketMessage {
+  CancelMatchmakingMessage() : super(type: 'CANCEL_MATCHMAKING', payload: {});
+}
+
 /// Room info received from server
 class RoomInfo {
   final String roomCode;

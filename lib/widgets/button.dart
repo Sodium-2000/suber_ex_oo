@@ -38,10 +38,7 @@ class _ButtonState extends State<Button> {
       child: Stack(
         children: [
           // Main button background
-          Container(
-            color: Theme.of(context).primaryColor,
-            // child: Center(child: boxIcon),
-          ),
+          Container(color: Theme.of(context).primaryColor),
           // Highlight overlay (doesn't affect layout)
           if (widget.isHighlighted)
             Positioned.fill(
@@ -66,10 +63,7 @@ class _ButtonState extends State<Button> {
                 ),
               ),
             ),
-          Container(
-            // color: Theme.of(context).primaryColor,
-            child: Center(child: boxIcon),
-          ),
+          Center(child: boxIcon),
         ],
       ),
     );
