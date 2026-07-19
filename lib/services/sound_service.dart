@@ -12,12 +12,12 @@ class SoundService {
 
   // Sound file paths - easily changeable
   final Map<SoundEffect, String> _soundPaths = {
-    SoundEffect.move: 'sounds/move.mp3',
+    SoundEffect.move: 'sounds/move.MP3',
     SoundEffect.opponentMove:
-        'sounds/move.mp3', // Can use opponent_move.mp3 for different sound
-    SoundEffect.win: 'sounds/win.mp3',
-    SoundEffect.loss: 'sounds/loss.mp3',
-    SoundEffect.draw: 'sounds/draw.mp3',
+        'sounds/move.MP3', // Can use opponent_move.mp3 for different sound
+    SoundEffect.win: 'sounds/win.MP3',
+    SoundEffect.loss: 'sounds/loss.MP3',
+    SoundEffect.draw: 'sounds/draw.MP3',
   };
 
   // Initialize and load mute preference

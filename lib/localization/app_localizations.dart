@@ -57,7 +57,7 @@ const Map<String, Map<String, String>> _translations = {
     'exit_message': 'Are you sure you want to exit?',
     'exit': 'Exit',
     'server_unreachable':
-        'Cannot reach server. Please check your internet connection.',
+        'Cannot reach server. Please Try after one minute. Also, check your internet connection.',
     'connection_failed': 'Failed to connect to server. Please try again.',
     'not_connected':
         'Not connected to server. Please wait or retry connection.',
@@ -125,7 +125,7 @@ const Map<String, Map<String, String>> _translations = {
     'exit_message': 'هل أنت متأكد من الخروج؟',
     'exit': 'خروج',
     'server_unreachable':
-        'لا يمكن الوصول إلى الخادم. يرجى التحقق من اتصالك بالإنترنت.',
+        'لا يمكن الوصول إلى الخادم. يرجى المحاولة بعد دقيقة. وكذلك التحقق من اتصالك بالإنترنت.',
     'connection_failed': 'فشل الاتصال بالخادم. يرجى المحاولة مرة أخرى.',
     'not_connected': 'غير متصل بالخادم. يرجى الانتظار أو إعادة المحاولة.',
     'retry_connection': 'إعادة المحاولة',

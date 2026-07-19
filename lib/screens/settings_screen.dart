@@ -13,13 +13,13 @@ class SettingsScreen extends StatelessWidget {
     return _SettingsSection(
       title: tr('color_theme_section'),
       children: [
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-          child: Text(
-            tr('color_theme_description'),
-            style: Theme.of(context).textTheme.bodyMedium,
-          ),
-        ),
+        // Padding(
+        //   padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        //   child: Text(
+        //     tr('color_theme_description'),
+        //     style: Theme.of(context).textTheme.bodyMedium,
+        //   ),
+        // ),
         ValueListenableBuilder<Color>(
           valueListenable: ThemeController.primaryColor,
           builder: (context, currentColor, _) {
@@ -49,9 +49,9 @@ class SettingsScreen extends StatelessWidget {
                     label: tr('green'),
                   ),
                   _ColorOption(
-                    color: Colors.orange,
-                    borderColor: Colors.orangeAccent.shade100,
-                    isSelected: currentColor == Colors.orange,
+                    color: Colors.deepOrange,
+                    borderColor: Colors.deepOrangeAccent.shade100,
+                    isSelected: currentColor == Colors.deepOrange,
                     label: tr('orange'),
                   ),
                   _ColorOption(
@@ -177,7 +177,7 @@ class SettingsScreen extends StatelessWidget {
               children: [
                 ListTile(
                   title: Text(tr('version')),
-                  subtitle: const Text('0.1.4'),
+                  subtitle: const Text('1.0.0'),
                   leading: const Icon(Icons.info_outline),
                 ),
               ],
@@ -366,7 +366,7 @@ class _ColorOption extends StatelessWidget {
                 : null,
           ),
           const SizedBox(height: 4),
-          Text(label, style: Theme.of(context).textTheme.bodySmall),
+          // Text(label, style: Theme.of(context).textTheme.bodySmall),
         ],
       ),
     );

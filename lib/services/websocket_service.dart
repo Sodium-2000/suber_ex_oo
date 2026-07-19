@@ -54,7 +54,9 @@ class WebSocketService {
         (message) {
           try {
             final data = jsonDecode(message as String);
-            _messageController.add(data);
+            if (!_messageController.isClosed) {
+              _messageController.add(data);
+            }
           } catch (e) {
             print('Error decoding message: $e');
           }
@@ -101,16 +103,23 @@ class WebSocketService {
     _channel?.sink.close();
     _channel = null;
     _reconnectAttempts = 0;
+    // Mark service as closed and clear the current URL so we don't attempt reconnects
+    _isClosed = true;
+    _currentUrl = null;
   }
 
   void _handleDisconnection() {
+    // If we've already closed/handled the service, no-op
+    if (_isClosed) return;
     _isClosed = true;
     _channel = null;
     if (_currentUrl != null && _reconnectAttempts < maxReconnectAttempts) {
       _attemptReconnect();
     } else {
-      // Emit disconnection event
-      _messageController.add({'type': 'CONNECTION_LOST'});
+      // Emit disconnection event if the stream is still open
+      if (!_messageController.isClosed) {
+        _messageController.add({'type': 'CONNECTION_LOST'});
+      }
     }
   }
 
@@ -125,7 +134,9 @@ class WebSocketService {
         if (_reconnectAttempts < maxReconnectAttempts) {
           _attemptReconnect();
         } else {
-          _messageController.add({'type': 'CONNECTION_LOST'});
+          if (!_messageController.isClosed) {
+            _messageController.add({'type': 'CONNECTION_LOST'});
+          }
         }
       }
     });
@@ -134,6 +145,8 @@ class WebSocketService {
   /// Dispose of resources
   void dispose() {
     disconnect();
-    _messageController.close();
+    if (!_messageController.isClosed) {
+      _messageController.close();
+    }
   }
 }

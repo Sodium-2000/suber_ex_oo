@@ -45,6 +45,7 @@ class _OnlineLobbyScreenState extends State<OnlineLobbyScreen> {
 
   Future<void> _loadLastRoomInfo() async {
     final prefs = await SharedPreferences.getInstance();
+    if (!mounted) return;
     setState(() {
       _lastRoomCode = prefs.getString('last_room_code');
       _lastPlayerId = prefs.getString('last_player_id');
@@ -61,6 +62,7 @@ class _OnlineLobbyScreenState extends State<OnlineLobbyScreen> {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString('last_room_code', roomCode);
     await prefs.setString('last_player_id', playerId);
+    if (!mounted) return;
     setState(() {
       _lastRoomCode = roomCode;
       _lastPlayerId = playerId;
@@ -71,6 +73,7 @@ class _OnlineLobbyScreenState extends State<OnlineLobbyScreen> {
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove('last_room_code');
     await prefs.remove('last_player_id');
+    if (!mounted) return;
     setState(() {
       _lastRoomCode = null;
       _lastPlayerId = null;
@@ -99,6 +102,7 @@ class _OnlineLobbyScreenState extends State<OnlineLobbyScreen> {
   }
 
   Future<void> _connectToServer() async {
+    if (!mounted) return;
     setState(() {
       _isConnecting = true;
       _errorMessage = null;
@@ -106,16 +110,20 @@ class _OnlineLobbyScreenState extends State<OnlineLobbyScreen> {
 
     try {
       await _wsService.connect(wsUrl);
+      if (!mounted) return;
       _listenToMessages();
+      if (!mounted) return;
       setState(() {
         _isConnecting = false;
       });
     } on TimeoutException {
+      if (!mounted) return;
       setState(() {
         _isConnecting = false;
         _errorMessage = tr('server_unreachable');
       });
     } catch (e) {
+      if (!mounted) return;
       setState(() {
         _isConnecting = false;
         _errorMessage = tr('connection_failed');
@@ -125,6 +133,9 @@ class _OnlineLobbyScreenState extends State<OnlineLobbyScreen> {
 
   void _listenToMessages() {
     _wsSubscription = _wsService.messages.listen((message) {
+      // Ignore messages if widget is no longer mounted
+      if (!mounted) return;
+
       final type = message['type'];
       final payload = message['payload'];
 
@@ -155,7 +166,9 @@ class _OnlineLobbyScreenState extends State<OnlineLobbyScreen> {
   }
 
   void _handleRoomCreated(Map<String, dynamic> payload) {
+    if (!mounted) return;
     final roomInfo = RoomInfo.fromJson(payload);
+    if (!mounted) return;
     setState(() {
       _currentRoomCode = roomInfo.roomCode;
       _playerId = roomInfo.playerId;
@@ -166,22 +179,26 @@ class _OnlineLobbyScreenState extends State<OnlineLobbyScreen> {
   }
 
   void _handleRoomJoined(Map<String, dynamic> payload) {
+    if (!mounted) return;
     final roomInfo = RoomInfo.fromJson(payload);
     _playerId = roomInfo.playerId;
     _playerSymbol = roomInfo.playerSymbol;
     _saveRoomInfo(roomInfo.roomCode, roomInfo.playerId);
 
     // Navigate to game
+    if (!mounted) return;
     _navigateToGame(roomInfo.roomCode);
   }
 
   void _handleOpponentJoined() {
+    if (!mounted) return;
     if (_currentRoomCode != null) {
       _navigateToGame(_currentRoomCode!);
     }
   }
 
   void _handleReconnected(Map<String, dynamic> payload) {
+    if (!mounted) return;
     print('🔄 Lobby: RECONNECTED received');
     print('🔄 Payload: $payload');
     final roomInfo = RoomInfo.fromJson(payload);
@@ -190,10 +207,12 @@ class _OnlineLobbyScreenState extends State<OnlineLobbyScreen> {
 
     // Navigate to game with initial game state
     print('🔄 Navigating to game with initialGameState');
+    if (!mounted) return;
     _navigateToGame(roomInfo.roomCode, initialGameState: payload);
   }
 
   void _handleError(Map<String, dynamic> payload) {
+    if (!mounted) return;
     setState(() {
       _errorMessage = payload['error'] ?? 'Unknown error';
       _isWaitingForOpponent = false;
@@ -201,6 +220,7 @@ class _OnlineLobbyScreenState extends State<OnlineLobbyScreen> {
   }
 
   void _handleRoomTimeout(Map<String, dynamic> payload) {
+    if (!mounted) return;
     setState(() {
       _errorMessage = payload['message'] ?? 'Room timed out';
       _isWaitingForOpponent = false;
@@ -211,6 +231,7 @@ class _OnlineLobbyScreenState extends State<OnlineLobbyScreen> {
   }
 
   void _handleRoomCheckResult(Map<String, dynamic> payload) {
+    if (!mounted) return;
     setState(() {
       _isCheckingRoom = false;
       final exists = payload['exists'] ?? false;
@@ -251,7 +272,10 @@ class _OnlineLobbyScreenState extends State<OnlineLobbyScreen> {
         ),
       ),
     ).then((_) {
-      // When returning from game, reset state and re-establish listener
+      // When returning from game, ensure widget still mounted
+      if (!mounted) return;
+
+      // reset state and re-establish listener
       setState(() {
         _isInGame = false;
         _isWaitingForOpponent = false;

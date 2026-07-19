@@ -58,6 +58,8 @@ class _UltimateBoard extends State<UltimateBoard> {
   bool _hasRequestedRestart = false;
   bool _opponentRequestedRestart = false;
   bool _isGamePaused = false;
+  // Prevent re-entrant exit dialogs from showing multiple times
+  bool _isShowingExitDialog = false;
 
   // Pending move tracking for reconnection
   Map<String, dynamic>? _pendingMove;
@@ -85,11 +87,14 @@ class _UltimateBoard extends State<UltimateBoard> {
     if (isOnlineMode) {
       _listenToWebSocketMessages();
     }
+
+    // Back/pop is handled by the WillPopScope wrapping this widget.
   }
 
   void _listenToWebSocketMessages() {
     _wsSubscription = widget.wsService?.messages.listen(
       (message) {
+        if (!mounted) return;
         final type = message['type'];
         final payload = message['payload'];
 
@@ -134,12 +139,14 @@ class _UltimateBoard extends State<UltimateBoard> {
       },
       onError: (error) {
         // Connection lost, attempt to reconnect
+        if (!mounted) return;
         if (!_isReconnecting) {
           _attemptReconnection();
         }
       },
       onDone: () {
         // Connection closed, attempt to reconnect
+        if (!mounted) return;
         if (!_isReconnecting) {
           _attemptReconnection();
         }
@@ -150,9 +157,14 @@ class _UltimateBoard extends State<UltimateBoard> {
   Future<void> _attemptReconnection() async {
     if (_isReconnecting) return;
 
-    setState(() {
+    if (mounted) {
+      setState(() {
+        _isReconnecting = true;
+      });
+    } else {
+      // If not mounted, don't attempt reconnection UI state changes
       _isReconnecting = true;
-    });
+    }
 
     try {
       // Try to reconnect to server
@@ -169,15 +181,15 @@ class _UltimateBoard extends State<UltimateBoard> {
       // Re-listen to messages
       _listenToWebSocketMessages();
     } catch (e) {
-      setState(() {
-        _isReconnecting = false;
-      });
-
-      // Show error and exit to menu
       if (mounted) {
+        setState(() {
+          _isReconnecting = false;
+        });
+
+        // Show error and exit to menu
         showDialog(
           context: context,
-          barrierDismissible: false,
+          // barrierDismissible: false,
           builder: (_) => AlertDialog(
             title: Text(tr('connection_failed')),
             content: Text(tr('server_unreachable')),
@@ -192,11 +204,15 @@ class _UltimateBoard extends State<UltimateBoard> {
             ],
           ),
         );
+      } else {
+        // Not mounted - just update internal flag
+        _isReconnecting = false;
       }
     }
   }
 
   void _handleOpponentMove(Map<String, dynamic> payload) {
+    if (!mounted) return;
     // Clear pending move on any move confirmation
     _pendingMove = null;
     _moveTimeoutTimer?.cancel();
@@ -225,6 +241,10 @@ class _UltimateBoard extends State<UltimateBoard> {
     final smallBoardState = smallBoardKey.currentState as SmallBoardState?;
     if (smallBoardState != null) {
       smallBoardState.playCell(cellIndex, playedBy);
+      // Play sound for opponent moves in online mode
+      if (isOnlineMode && playedBy != _currentPlayerSymbol) {
+        _soundService.play(SoundEffect.opponentMove);
+      }
     }
 
     // Update game state
@@ -254,6 +274,7 @@ class _UltimateBoard extends State<UltimateBoard> {
   }
 
   void _handleGameRestarted(Map<String, dynamic> payload) {
+    if (!mounted) return;
     // Reset local game state WITHOUT sending message back to server
     setState(() {
       moveHistory.clear();
@@ -276,6 +297,7 @@ class _UltimateBoard extends State<UltimateBoard> {
   }
 
   void _handleRestartRequested(Map<String, dynamic> payload) {
+    if (!mounted) return;
     setState(() {
       _opponentRequestedRestart = true;
     });
@@ -316,6 +338,7 @@ class _UltimateBoard extends State<UltimateBoard> {
   }
 
   void _handlePlayerDisconnected(Map<String, dynamic> payload) {
+    if (!mounted) return;
     setState(() {
       _isOpponentDisconnected = true;
       _isGamePaused = true;
@@ -332,6 +355,7 @@ class _UltimateBoard extends State<UltimateBoard> {
   }
 
   void _handlePlayerReconnected(Map<String, dynamic> payload) {
+    if (!mounted) return;
     setState(() {
       _isOpponentDisconnected = false;
       _isReconnecting = false;
@@ -347,6 +371,7 @@ class _UltimateBoard extends State<UltimateBoard> {
   }
 
   void _handleReconnected(Map<String, dynamic> payload) {
+    if (!mounted) return;
     // Successfully reconnected, restore game state from server
     _initializeFromGameState(payload);
 
@@ -377,13 +402,15 @@ class _UltimateBoard extends State<UltimateBoard> {
       }
     }
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Reconnected successfully!'),
-        duration: Duration(seconds: 2),
-        backgroundColor: Colors.green,
-      ),
-    );
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Reconnected successfully!'),
+          duration: Duration(seconds: 2),
+          backgroundColor: Colors.green,
+        ),
+      );
+    }
   }
 
   void _initializeFromGameState(Map<String, dynamic> payload) {
@@ -395,6 +422,11 @@ class _UltimateBoard extends State<UltimateBoard> {
     print('🔄 gameState: $gameState');
     print('🔄 serverActiveBoard: $serverActiveBoard');
     print('🔄 serverCurrentTurn: $serverCurrentTurn');
+
+    if (!mounted) {
+      print('🔄 _initializeFromGameState aborted: widget not mounted');
+      return;
+    }
 
     if (gameState != null) {
       // Restore the game state from server
@@ -452,9 +484,13 @@ class _UltimateBoard extends State<UltimateBoard> {
       });
     } else {
       print('❌ gameState is null!');
-      setState(() {
+      if (mounted) {
+        setState(() {
+          _isReconnecting = false;
+        });
+      } else {
         _isReconnecting = false;
-      });
+      }
     }
   }
 
@@ -462,7 +498,7 @@ class _UltimateBoard extends State<UltimateBoard> {
     // Room was closed due to inactivity
     showDialog(
       context: context,
-      barrierDismissible: false,
+      // barrierDismissible: false,
       builder: (_) => AlertDialog(
         title: Text(tr('room_timeout')),
         content: Text(payload['message'] ?? 'Room closed due to inactivity'),
@@ -483,7 +519,7 @@ class _UltimateBoard extends State<UltimateBoard> {
     // Clear any pending move when game is paused
     _pendingMove = null;
     _moveTimeoutTimer?.cancel();
-
+    if (!mounted) return;
     setState(() {
       _isGamePaused = true;
     });
@@ -498,6 +534,7 @@ class _UltimateBoard extends State<UltimateBoard> {
   }
 
   void _handleGameResumed(Map<String, dynamic> payload) {
+    if (!mounted) return;
     setState(() {
       _isGamePaused = false;
       _isOpponentDisconnected = false;
@@ -514,6 +551,7 @@ class _UltimateBoard extends State<UltimateBoard> {
   }
 
   void _handleRoomClosingSoon(Map<String, dynamic> payload) {
+    if (!mounted) return;
     final timeLeft = payload['timeLeft'] ?? 60;
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
@@ -529,6 +567,7 @@ class _UltimateBoard extends State<UltimateBoard> {
   }
 
   void _handleConnectionLost() {
+    if (!mounted) return;
     setState(() {
       _isReconnecting = true;
     });
@@ -584,6 +623,71 @@ class _UltimateBoard extends State<UltimateBoard> {
     );
   }
 
+  // Intercept any attempt to pop the route (Android back button or iOS swipe) and
+  // show a confirmation dialog to prevent accidental exits.
+  Future<bool> _onWillPop() async {
+    if (_isShowingExitDialog) return Future.value(false);
+    _isShowingExitDialog = true;
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: Center(
+          child: Text(
+            tr('exit_title'),
+            style: Theme.of(context).textTheme.titleLarge,
+          ),
+        ),
+        content: FittedBox(
+          child: Center(
+            child: Text(
+              isOnlineMode
+                  ? '${tr('exit_message')}\n\nLeaving will forfeit the match.'
+                  : tr('exit_message'),
+              style: Theme.of(context).textTheme.bodyMedium,
+            ),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () {
+              _isShowingExitDialog = false;
+              Navigator.pop(context, false);
+            },
+            child: Text(
+              tr('cancel'),
+              style: TextStyle(color: Theme.of(context).primaryColor),
+            ),
+          ),
+          TextButton(
+            onPressed: () {
+              _isShowingExitDialog = false;
+              Navigator.pop(context, true);
+            },
+            child: Text(
+              tr('exit'),
+              style: TextStyle(color: Theme.of(context).primaryColor),
+            ),
+          ),
+        ],
+        actionsAlignment: MainAxisAlignment.spaceAround,
+      ),
+    );
+
+    // If the user confirmed, perform the same exit flow as the appbar exit.
+    if (confirmed == true) {
+      if (isOnlineMode) {
+        // Ensure we notify server we are leaving
+        _leaveRoom();
+      } else {
+        _exitGame();
+      }
+    }
+
+    // We handled navigation (or the user cancelled), so prevent the default pop.
+    return Future.value(false);
+  }
+
   void _exitGame() {
     // If in online mode, send leave room message
     if (isOnlineMode) {
@@ -621,7 +725,7 @@ class _UltimateBoard extends State<UltimateBoard> {
 
     showDialog(
       context: context,
-      barrierDismissible: false,
+      // barrierDismissible: false,
       builder: (_) => AlertDialog(
         title: Center(
           child: Text(
@@ -669,6 +773,9 @@ class _UltimateBoard extends State<UltimateBoard> {
         print('Failed to send leave message during disposal: $e');
       }
     }
+
+
+
     super.dispose();
   }
 
@@ -1020,14 +1127,14 @@ class _UltimateBoard extends State<UltimateBoard> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    return WillPopScope(
+      onWillPop: _onWillPop,
+      child: Scaffold(
       appBar: AppBar(
         leading: IconButton(
-          onPressed: isOnlineMode
-              ? null // Disable undo in online mode
-              : undoLastMove,
-          icon: const Icon(Icons.undo),
-          tooltip: isOnlineMode ? null : tr('undo_tool'),
+          onPressed: _showExitDialog,
+          icon: const Icon(Icons.exit_to_app),
+          tooltip: tr('exit_game'),
         ),
         title: Container(
           child: Row(
@@ -1065,11 +1172,11 @@ class _UltimateBoard extends State<UltimateBoard> {
         ),
         centerTitle: true,
         actions: [
-          // Exit button
+          // Undo button (moved to actions)
           IconButton(
-            onPressed: _showExitDialog,
-            icon: const Icon(Icons.exit_to_app),
-            tooltip: tr('exit_game'),
+            onPressed: isOnlineMode ? null : undoLastMove,
+            icon: const Icon(Icons.undo),
+            tooltip: isOnlineMode ? null : tr('undo_tool'),
           ),
 
           // Settings button (consolidated theme, language, color)
@@ -1355,6 +1462,6 @@ class _UltimateBoard extends State<UltimateBoard> {
           ],
         ),
       ),
-    );
+    ));
   }
 }
