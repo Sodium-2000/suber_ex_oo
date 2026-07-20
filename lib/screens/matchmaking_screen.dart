@@ -114,6 +114,15 @@ class _MatchmakingScreenState extends State<MatchmakingScreen> {
     _backupTimeoutTimer?.cancel();
     final roomInfo = RoomInfo.fromJson(payload);
 
+    // Confirm receipt so the server doesn't tear this match down thinking
+    // we never got it.
+    try {
+      _wsService.send(MatchAckMessage());
+    } catch (e) {
+      // If this fails, the connection is already broken and the server's
+      // own ack timeout will recover the other player anyway.
+    }
+
     _wsSubscription?.cancel();
     _wsSubscription = null;
     _isInGame = true;

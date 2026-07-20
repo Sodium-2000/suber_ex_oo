@@ -131,6 +131,9 @@ class _UltimateBoard extends State<UltimateBoard> {
           case 'CONNECTION_LOST':
             _handleConnectionLost();
             break;
+          case 'ERROR':
+            _handleServerError(payload);
+            break;
         }
       },
       onError: (error) {
@@ -551,6 +554,22 @@ class _UltimateBoard extends State<UltimateBoard> {
         duration: Duration(seconds: 3),
         backgroundColor: Colors.red,
       ),
+    );
+  }
+
+  void _handleServerError(Map<String, dynamic> payload) {
+    if (!mounted) return;
+    // A rejected move (e.g. the server disagreeing with a stale local
+    // active-board state) should surface as a message, not a fake
+    // disconnect - clear the pending move so its timeout doesn't fire and
+    // trigger an unnecessary reconnection attempt.
+    _pendingMove = null;
+    _moveTimeoutTimer?.cancel();
+
+    final message = payload['error'];
+    if (message == null) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message), duration: const Duration(seconds: 3)),
     );
   }
 

@@ -68,6 +68,13 @@ class CancelMatchmakingMessage extends WebSocketMessage {
   CancelMatchmakingMessage() : super(type: 'CANCEL_MATCHMAKING', payload: {});
 }
 
+/// Confirms a MATCH_FOUND was actually received and acted on. The server
+/// gives both matched players a short grace period to send this before
+/// re-opening the match for whichever side did confirm.
+class MatchAckMessage extends WebSocketMessage {
+  MatchAckMessage() : super(type: 'MATCH_ACK', payload: {});
+}
+
 /// Room info received from server
 class RoomInfo {
   final String roomCode;
