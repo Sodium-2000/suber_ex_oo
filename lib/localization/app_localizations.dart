@@ -174,15 +174,15 @@ const Map<String, Map<String, String>> _translations = {
     'private_game_description': 'أنشئ أو انضم إلى لعبة برمز الغرفة',
     'matchmaking_stage_1': 'البحث عن خصم...',
     'matchmaking_stage_2': 'لا يزال البحث عن خصم جارياً...',
-    'matchmaking_stage_3': 'جاري البحث...',
+    'matchmaking_stage_3': 'املأ وقتك بذكر الله',
     'matchmaking_stage_3_sub': 'يرجى الانتظار، قد يستغرق هذا بعض الوقت',
     'matchmaking_stage_4': 'لا يزال البحث جارياً...',
     'matchmaking_stage_4_sub': 'لا يوجد خصم متاح الآن',
-    'matchmaking_stage_5': 'أوشكنا على إنهاء البحث...',
+    'matchmaking_stage_5': 'املأ وقتك بالاستغفار',
     'matchmaking_stage_5_sub': 'سنتوقف عن البحث قريباً إذا لم ينضم أحد',
     'matchmaking_timeout_title': 'لم يتم العثور على خصم',
     'matchmaking_timeout_message':
-        'لم نتمكن من العثور على أحد للعب معه. هل تريد المحاولة مرة أخرى؟',
+        'لم نتمكن من العثور على أحد لتعب معه. هل تريد المحاولة مرة أخرى؟',
     'search_again': 'ابحث مرة أخرى',
   },
 };

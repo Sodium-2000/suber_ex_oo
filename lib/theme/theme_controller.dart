@@ -19,35 +19,37 @@ class ThemeController {
     Colors.pinkAccent.shade100,
   );
 
-  // Preset color pairs (primary, border) to cycle through
-  static final List<Map<String, Color>> _presets = [
-    {'primary': Colors.pink, 'border': Colors.pinkAccent.shade100},
-    {'primary': Colors.blue, 'border': Colors.blueAccent.shade100},
-    {'primary': Colors.lightGreen, 'border': Colors.lightGreenAccent.shade100},
-    {'primary': Colors.orange, 'border': Colors.orangeAccent.shade100},
-    {'primary': Colors.purple, 'border': Colors.purpleAccent.shade100},
-    {'primary': Colors.cyan, 'border': Colors.cyanAccent.shade100},
-    {'primary': Colors.brown, 'border': Colors.brown.shade200},
-    {'primary': Colors.grey, 'border': Colors.grey.shade300},
+  /// The color choices offered on the Settings screen - the single source of
+  /// truth for "the app's available colors", also used anywhere else (e.g.
+  /// decorative backgrounds) that needs to stay in sync with them.
+  static final List<({Color primary, Color border, String nameKey})>
+  colorPresets = [
+    (primary: Colors.pink, border: Colors.pinkAccent.shade100, nameKey: 'pink'),
+    (primary: Colors.blue, border: Colors.blueAccent.shade100, nameKey: 'blue'),
+    (
+      primary: Colors.lightGreen,
+      border: Colors.lightGreenAccent.shade100,
+      nameKey: 'green',
+    ),
+    (
+      primary: Colors.deepOrange,
+      border: Colors.deepOrangeAccent.shade100,
+      nameKey: 'orange',
+    ),
+    (
+      primary: Colors.purple,
+      border: Colors.purpleAccent.shade100,
+      nameKey: 'purple',
+    ),
+    (primary: Colors.cyan, border: Colors.cyanAccent.shade100, nameKey: 'cyan'),
+    (primary: Colors.brown, border: Colors.brown.shade200, nameKey: 'brown'),
+    (primary: Colors.grey, border: Colors.grey.shade300, nameKey: 'grey'),
   ];
-
-  static int _presetIndex = 0;
 
   // SharedPreferences keys
   static const String _kIsDark = 'theme_is_dark';
   static const String _kPrimary = 'theme_primary';
   static const String _kBorder = 'theme_border';
-  static const String _kPresetIndex = 'theme_preset_index';
-
-  /// Cycle to the next preset in the list and apply it.
-  static void cyclePreset() {
-    _presetIndex = (_presetIndex + 1) % _presets.length;
-    final p = _presets[_presetIndex];
-    primaryColor.value = p['primary']!;
-    borderColor.value = p['border']!;
-    _savePresetIndex();
-    _saveColors();
-  }
 
   static void toggle() {
     isDark.value = !isDark.value;
@@ -67,7 +69,6 @@ class ThemeController {
   /// Initialize controller from persisted settings.
   static Future<void> init() async {
     final prefs = await SharedPreferences.getInstance();
-    _presetIndex = prefs.getInt(_kPresetIndex) ?? 0;
 
     final isDarkPref = prefs.getBool(_kIsDark);
     if (isDarkPref != null) isDark.value = isDarkPref;
@@ -90,8 +91,4 @@ class ThemeController {
     await prefs.setInt(_kBorder, borderColor.value.value);
   }
 
-  static Future<void> _savePresetIndex() async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setInt(_kPresetIndex, _presetIndex);
-  }
 }

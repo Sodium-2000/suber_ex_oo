@@ -5,6 +5,7 @@ import 'package:super_xo/models/game_mode.dart';
 import 'package:super_xo/models/websocket_message.dart';
 import 'package:super_xo/screens/ultimate_board.dart';
 import 'package:super_xo/services/websocket_service.dart';
+import 'package:super_xo/widgets/floating_pieces_background.dart';
 import 'package:super_xo/widgets/staged_status_view.dart';
 
 /// Quick-match screen: connects to the backend, joins the matchmaking queue,
@@ -187,7 +188,9 @@ class _MatchmakingScreenState extends State<MatchmakingScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: Text(tr('quick_match')), centerTitle: true),
-      body: SafeArea(child: Center(child: _buildBody())),
+      body: FloatingPiecesBackground(
+        child: SafeArea(child: Center(child: _buildBody())),
+      ),
     );
   }
 

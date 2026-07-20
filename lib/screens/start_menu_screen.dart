@@ -11,17 +11,20 @@ class StartMenuScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final primaryColor = Theme.of(context).primaryColor;
+
     return Scaffold(
       body: Container(
         decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [
-              Theme.of(context).primaryColor.withOpacity(1),
-              Theme.of(context).primaryColor.withOpacity(1),
-            ],
-          ),
+          color: isDark ? Colors.black : null,
+          gradient: isDark
+              ? null
+              : LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [primaryColor.withOpacity(1), primaryColor.withOpacity(1)],
+                ),
         ),
         child: SafeArea(
           child: Center(
@@ -35,7 +38,7 @@ class StartMenuScreen extends StatelessWidget {
                     tr('start_menu_title'),
                     style: Theme.of(context).textTheme.displayLarge?.copyWith(
                       fontWeight: FontWeight.bold,
-                      color: Colors.white,
+                      color: isDark ? primaryColor : Colors.white,
                       shadows: [
                         Shadow(
                           color: Colors.black.withOpacity(0.3),
@@ -116,14 +119,17 @@ class _MenuButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final primaryColor = Theme.of(context).primaryColor;
+
     return SizedBox(
       width: double.infinity,
       height: 70,
       child: ElevatedButton(
         onPressed: onPressed,
         style: ElevatedButton.styleFrom(
-          backgroundColor: Colors.white,
-          foregroundColor: Theme.of(context).primaryColor,
+          backgroundColor: isDark ? primaryColor : Colors.white,
+          foregroundColor: isDark ? Colors.white : primaryColor,
           elevation: 8,
           shadowColor: Colors.black.withOpacity(0.3),
           shape: RoundedRectangleBorder(

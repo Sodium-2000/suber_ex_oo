@@ -29,56 +29,14 @@ class SettingsScreen extends StatelessWidget {
                 spacing: 16,
                 runSpacing: 16,
                 alignment: WrapAlignment.center,
-                children: [
-                  _ColorOption(
-                    color: Colors.pink,
-                    borderColor: Colors.pinkAccent.shade100,
-                    isSelected: currentColor == Colors.pink,
-                    label: tr('pink'),
-                  ),
-                  _ColorOption(
-                    color: Colors.blue,
-                    borderColor: Colors.blueAccent.shade100,
-                    isSelected: currentColor == Colors.blue,
-                    label: tr('blue'),
-                  ),
-                  _ColorOption(
-                    color: Colors.lightGreen,
-                    borderColor: Colors.lightGreenAccent.shade100,
-                    isSelected: currentColor == Colors.lightGreen,
-                    label: tr('green'),
-                  ),
-                  _ColorOption(
-                    color: Colors.deepOrange,
-                    borderColor: Colors.deepOrangeAccent.shade100,
-                    isSelected: currentColor == Colors.deepOrange,
-                    label: tr('orange'),
-                  ),
-                  _ColorOption(
-                    color: Colors.purple,
-                    borderColor: Colors.purpleAccent.shade100,
-                    isSelected: currentColor == Colors.purple,
-                    label: tr('purple'),
-                  ),
-                  _ColorOption(
-                    color: Colors.cyan,
-                    borderColor: Colors.cyanAccent.shade100,
-                    isSelected: currentColor == Colors.cyan,
-                    label: tr('cyan'),
-                  ),
-                  _ColorOption(
-                    color: Colors.brown,
-                    borderColor: Colors.brown.shade200,
-                    isSelected: currentColor == Colors.brown,
-                    label: tr('brown'),
-                  ),
-                  _ColorOption(
-                    color: Colors.grey,
-                    borderColor: Colors.grey.shade300,
-                    isSelected: currentColor == Colors.grey,
-                    label: tr('grey'),
-                  ),
-                ],
+                children: ThemeController.colorPresets.map((preset) {
+                  return _ColorOption(
+                    color: preset.primary,
+                    borderColor: preset.border,
+                    isSelected: currentColor == preset.primary,
+                    label: tr(preset.nameKey),
+                  );
+                }).toList(),
               ),
             );
           },
@@ -89,6 +47,18 @@ class SettingsScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // The rest of this screen only rebuilds when something it directly
+    // listens to changes. Without this, section titles (built with bare
+    // tr() calls) never re-evaluate on a language change, since this
+    // screen isn't otherwise notified - only widgets with their own
+    // ValueListenableBuilder on LanguageController.lang are.
+    return ValueListenableBuilder<String>(
+      valueListenable: LanguageController.lang,
+      builder: (context, _, _) => _buildContent(context),
+    );
+  }
+
+  Widget _buildContent(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: Text(tr('settings_title')), centerTitle: true),
       body: SafeArea(
