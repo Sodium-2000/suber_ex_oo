@@ -23,7 +23,10 @@ class StartMenuScreen extends StatelessWidget {
               : LinearGradient(
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
-                  colors: [primaryColor.withOpacity(1), primaryColor.withOpacity(1)],
+                  colors: [
+                    primaryColor.withValues(alpha: 1),
+                    primaryColor.withValues(alpha: 1),
+                  ],
                 ),
         ),
         child: SafeArea(
@@ -41,7 +44,7 @@ class StartMenuScreen extends StatelessWidget {
                       color: isDark ? primaryColor : Colors.white,
                       shadows: [
                         Shadow(
-                          color: Colors.black.withOpacity(0.3),
+                          color: Colors.black.withValues(alpha: 0.3),
                           blurRadius: 10,
                           offset: const Offset(2, 2),
                         ),
@@ -131,7 +134,7 @@ class _MenuButton extends StatelessWidget {
           backgroundColor: isDark ? primaryColor : Colors.white,
           foregroundColor: isDark ? Colors.white : primaryColor,
           elevation: 8,
-          shadowColor: Colors.black.withOpacity(0.3),
+          shadowColor: Colors.black.withValues(alpha: 0.3),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(16),
           ),

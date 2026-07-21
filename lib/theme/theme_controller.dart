@@ -87,8 +87,8 @@ class ThemeController {
 
   static Future<void> _saveColors() async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setInt(_kPrimary, primaryColor.value.value);
-    await prefs.setInt(_kBorder, borderColor.value.value);
+    await prefs.setInt(_kPrimary, primaryColor.value.toARGB32());
+    await prefs.setInt(_kBorder, borderColor.value.toARGB32());
   }
 
 }

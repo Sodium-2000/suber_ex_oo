@@ -84,7 +84,7 @@ class _UltimateBoard extends State<UltimateBoard> {
       _listenToWebSocketMessages();
     }
 
-    // Back/pop is handled by the WillPopScope wrapping this widget.
+    // Back/pop is handled by the PopScope wrapping this widget.
   }
 
   void _listenToWebSocketMessages() {
@@ -617,8 +617,9 @@ class _UltimateBoard extends State<UltimateBoard> {
 
   // Intercept any attempt to pop the route (Android back button or iOS swipe) and
   // show a confirmation dialog to prevent accidental exits.
-  Future<bool> _onWillPop() async {
-    if (_isShowingExitDialog) return Future.value(false);
+  Future<void> _onPopInvokedWithResult(bool didPop, dynamic result) async {
+    if (didPop) return;
+    if (_isShowingExitDialog) return;
     _isShowingExitDialog = true;
 
     final confirmed = await showDialog<bool>(
@@ -667,6 +668,7 @@ class _UltimateBoard extends State<UltimateBoard> {
     );
 
     // If the user confirmed, perform the same exit flow as the appbar exit.
+    // canPop is always false, so the actual navigation below is what exits.
     if (confirmed == true) {
       if (isOnlineMode) {
         // Ensure we notify server we are leaving
@@ -675,9 +677,6 @@ class _UltimateBoard extends State<UltimateBoard> {
         _exitGame();
       }
     }
-
-    // We handled navigation (or the user cancelled), so prevent the default pop.
-    return Future.value(false);
   }
 
   void _exitGame() {
@@ -1113,8 +1112,9 @@ class _UltimateBoard extends State<UltimateBoard> {
 
   @override
   Widget build(BuildContext context) {
-    return WillPopScope(
-      onWillPop: _onWillPop,
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: _onPopInvokedWithResult,
       child: Scaffold(
       appBar: AppBar(
         leading: IconButton(

@@ -77,7 +77,7 @@ class SettingsScreen extends StatelessWidget {
                       subtitle: Text(tr('dark_mode_description')),
                       value: isDark,
                       onChanged: (_) => ThemeController.toggle(),
-                      activeColor: Theme.of(context).primaryColor,
+                      activeThumbColor: Theme.of(context).primaryColor,
                     );
                   },
                 ),
@@ -93,31 +93,27 @@ class SettingsScreen extends StatelessWidget {
                 ValueListenableBuilder<String>(
                   valueListenable: LanguageController.lang,
                   builder: (context, currentLang, _) {
-                    return Column(
-                      children: [
-                        RadioListTile<String>(
-                          title: Text(tr('language_english')),
-                          value: 'en',
-                          groupValue: currentLang,
-                          onChanged: (value) {
-                            if (value != null) {
-                              LanguageController.setAndSave(value);
-                            }
-                          },
-                          activeColor: Theme.of(context).primaryColor,
-                        ),
-                        RadioListTile<String>(
-                          title: Text(tr('language_arabic')),
-                          value: 'ar',
-                          groupValue: currentLang,
-                          onChanged: (value) {
-                            if (value != null) {
-                              LanguageController.setAndSave(value);
-                            }
-                          },
-                          activeColor: Theme.of(context).primaryColor,
-                        ),
-                      ],
+                    return RadioGroup<String>(
+                      groupValue: currentLang,
+                      onChanged: (value) {
+                        if (value != null) {
+                          LanguageController.setAndSave(value);
+                        }
+                      },
+                      child: Column(
+                        children: [
+                          RadioListTile<String>(
+                            title: Text(tr('language_english')),
+                            value: 'en',
+                            activeColor: Theme.of(context).primaryColor,
+                          ),
+                          RadioListTile<String>(
+                            title: Text(tr('language_arabic')),
+                            value: 'ar',
+                            activeColor: Theme.of(context).primaryColor,
+                          ),
+                        ],
+                      ),
                     );
                   },
                 ),
@@ -238,7 +234,7 @@ class _SoundSectionState extends State<_SoundSection> {
               _isMuted = !value;
             });
           },
-          activeColor: Theme.of(context).primaryColor,
+          activeThumbColor: Theme.of(context).primaryColor,
         ),
       ),
     );
@@ -280,7 +276,7 @@ class _GameplaySectionState extends State<_GameplaySection> {
               onChanged: (value) async {
                 await _gameSettings.setDimmingEnabled(value);
               },
-              activeColor: Theme.of(context).primaryColor,
+              activeThumbColor: Theme.of(context).primaryColor,
             ),
           );
         },
@@ -324,7 +320,7 @@ class _ColorOption extends StatelessWidget {
               boxShadow: isSelected
                   ? [
                       BoxShadow(
-                        color: color.withOpacity(0.5),
+                        color: color.withValues(alpha: 0.5),
                         blurRadius: 8,
                         spreadRadius: 2,
                       ),

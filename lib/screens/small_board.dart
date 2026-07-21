@@ -294,12 +294,12 @@ class SmallBoardState extends State<SmallBoard> {
         color: Colors.white,
         shadows: [
           Shadow(
-            color: Colors.black.withOpacity(1),
+            color: Colors.black.withValues(alpha: 1),
             blurRadius: 10.0,
             offset: Offset(5.0, 5.0),
           ),
           Shadow(
-            color: Colors.black.withOpacity(1),
+            color: Colors.black.withValues(alpha: 1),
             blurRadius: 10.0,
             offset: Offset(-3.0, -3.0),
           ),
@@ -318,12 +318,12 @@ class SmallBoardState extends State<SmallBoard> {
         color: Colors.white,
         shadows: [
           Shadow(
-            color: Colors.black.withOpacity(1),
+            color: Colors.black.withValues(alpha: 1),
             blurRadius: 10.0,
             offset: Offset(5.0, 5.0),
           ),
           Shadow(
-            color: Colors.black.withOpacity(1),
+            color: Colors.black.withValues(alpha: 1),
             blurRadius: 10.0,
             offset: Offset(-3.0, -3.0),
           ),
@@ -336,12 +336,12 @@ class SmallBoardState extends State<SmallBoard> {
         color: Colors.white,
         shadows: [
           Shadow(
-            color: Colors.black.withOpacity(1),
+            color: Colors.black.withValues(alpha: 1),
             blurRadius: 10.0,
             offset: Offset(5.0, 5.0),
           ),
           Shadow(
-            color: Colors.black.withOpacity(1),
+            color: Colors.black.withValues(alpha: 1),
             blurRadius: 10.0,
             offset: Offset(-3.0, -3.0),
           ),
@@ -513,7 +513,7 @@ class SmallBoardState extends State<SmallBoard> {
               child: AnimatedOpacity(
                 opacity: isDimmed ? 1.0 : 0.0,
                 duration: const Duration(milliseconds: 200),
-                child: Container(color: Colors.black.withOpacity(0.6)),
+                child: Container(color: Colors.black.withValues(alpha: 0.6)),
               ),
             ),
           ),
