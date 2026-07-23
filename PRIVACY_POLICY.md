@@ -1,9 +1,9 @@
-# Super XO — Privacy Policy & Terms of Use
+# Super: XO - Privacy Policy & Terms of Use
 
 **Effective date:** July 20, 2026
 
 Super XO is developed and maintained by an independent solo developer
-(contact: najeebsalem1@gmail.com). This page covers both how the app
+(contact: Sodium11work@gmail.com). This page covers both how the app
 handles data (Privacy Policy) and the terms under which you use it
 (Terms of Use).
 
@@ -24,7 +24,7 @@ email, or any personal identifying information to play.
   (e.g. rejoining a room).
 - **On the game server, only while you're playing online**: a
   randomly generated, anonymous player ID (not tied to your identity
-  in any way), the moves you make, and your connection's IP address —
+  in any way), the moves you make, and your connection's IP address,
   the same basic connection information any server sees from any
   incoming connection. This information is held in the server's
   memory only for the duration of your session and is not written to
@@ -55,7 +55,7 @@ Since no persistent account or personal data is stored, there is
 generally nothing to access, export, or delete beyond what already
 lives locally on your own device (which you can clear at any time by
 uninstalling the app or clearing its local storage). If you have any
-question about data handling, contact najeebsalem1@gmail.com.
+question about data handling, contact Sodium11work@gmail.com.
 
 ### Security
 
@@ -87,7 +87,7 @@ term or the long term, and is provided on an "as-available" basis.**
 
 The developer may modify, suspend, restrict, or permanently
 discontinue the online multiplayer service at any time, with or
-without notice, for any reason — including but not limited to cost,
+without notice, for any reason, including but not limited to cost,
 maintenance, hosting provider issues, or the developer's own
 discretion. This may happen suddenly and without advance warning.
 
@@ -117,4 +117,4 @@ app after an update means you accept the revised terms.
 ### Contact
 
 Questions about these terms or the privacy policy above can be sent to
-najeebsalem1@gmail.com.
+Sodium11work@gmail.com.
